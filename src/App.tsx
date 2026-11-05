@@ -1,9 +1,16 @@
 import "./App.css";
+import DaftarJurnal from "./components/DaftarJurnal";
+import DaftarPeserta from "./components/DaftarPeserta";
+import HasilJurnal from "./components/HasilJurnal";
+import JumlahJurnal from "./components/JumlahJurnal";
+import JurnalTerbaru from "./components/JurnalTerbaru";
 import Kartu from "./components/Kartu";
 import NomorUrut from "./components/NomorUrut";
 import PesertaCard from "./components/PesertaCard";
 import PesertaRingkas from "./components/PesertaRingkas";
 import PesertaTanpaEmail from "./components/PesertaTanpaEmail";
+import RingkasanJurnal from "./components/RingkasanJurnal";
+import { jurnalTiruan } from "./data/jurnalTiruan";
 import { pesertaTiruan } from "./data/pesertaTiruan";
 
 export default function App() {
@@ -16,7 +23,7 @@ export default function App() {
 
       <Kartu judul="Semua Peserta">
         <div className="daftar">
-          {/* key membantu React mengenali tiap item; dibahas lebih dalam hari Rabu */}
+          {/* key = id dari data, supaya React mengenali tiap item */}
           {pesertaTiruan.map((p) => (
             <PesertaCard key={p.id} peserta={p} />
           ))}
@@ -68,6 +75,41 @@ export default function App() {
         <NomorUrut nomor={1} />
         <NomorUrut nomor={2} />
         <NomorUrut nomor={3} />
+      </Kartu>
+
+      {/* Rabu: daftar, key, dan rendering bersyarat */}
+      <Kartu judul="Daftar Peserta (map dan key)">
+        <DaftarPeserta peserta={pesertaTiruan} />
+      </Kartu>
+
+      <Kartu judul="Daftar Peserta Kosong (early return)">
+        <DaftarPeserta peserta={[]} />
+      </Kartu>
+
+      <Kartu judul="Ringkasan Jurnal">
+        <JumlahJurnal jumlah={jurnalTiruan.length} />
+        <JumlahJurnal jumlah={0} />
+        <RingkasanJurnal jurnal={jurnalTiruan} />
+      </Kartu>
+
+      <Kartu judul="Jurnal Terbaru (salinan diurutkan)">
+        <JurnalTerbaru jurnal={jurnalTiruan} />
+      </Kartu>
+
+      <Kartu judul="Jurnal (urutan asli, tidak berubah)">
+        <DaftarJurnal jurnal={jurnalTiruan} />
+      </Kartu>
+
+      <Kartu judul="HasilJurnal: memuat">
+        <HasilJurnal status="memuat" />
+      </Kartu>
+
+      <Kartu judul="HasilJurnal: berhasil">
+        <HasilJurnal status="berhasil" data={jurnalTiruan} />
+      </Kartu>
+
+      <Kartu judul="HasilJurnal: gagal">
+        <HasilJurnal status="gagal" pesan="Koneksi terputus" />
       </Kartu>
     </main>
   );
