@@ -1,0 +1,23 @@
+.card {
+  border: 1px solid var(--warna-garis);
+  border-radius: var(--jari-jari);
+  padding: 0.75rem;
+  background: var(--warna-permukaan);
+}
+
+.judul {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+}
+
+.baris {
+  margin: 0.2rem 0;
+}
+
+.label {
+  font-weight: 600;
+}
+
+.aksi {
+  margin-top: 0.5rem;
+}

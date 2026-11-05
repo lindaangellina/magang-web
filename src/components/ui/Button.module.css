@@ -1,0 +1,41 @@
+.button {
+  border: 0;
+  border-radius: var(--jari-jari);
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.button:focus-visible {
+  outline: 3px solid var(--warna-teks);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.md {
+  padding: 8px 16px;
+}
+
+.sm {
+  padding: 4px 10px;
+  font-size: 0.85rem;
+}
+
+.primary {
+  background: var(--warna-utama);
+  color: white;
+}
+
+.secondary {
+  background: white;
+  color: var(--warna-utama);
+  border: 1px solid var(--warna-utama);
+}
+
+.danger {
+  background: var(--warna-bahaya);
+  color: white;
+}

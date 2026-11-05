@@ -1,12 +1,12 @@
 import type { Jurnal } from "../types/jurnal";
-import { formatTanggal } from "../utils/format";
-import InfoBaris from "./InfoBaris";
+import JurnalCard from "./jurnal/JurnalCard";
 
 interface DaftarJurnalProps {
   jurnal: Jurnal[];
+  onHapus?: (id: number) => void;
 }
 
-export default function DaftarJurnal({ jurnal }: DaftarJurnalProps) {
+export default function DaftarJurnal({ jurnal, onHapus }: DaftarJurnalProps) {
   if (jurnal.length === 0) {
     return <p>Belum ada jurnal.</p>;
   }
@@ -15,13 +15,7 @@ export default function DaftarJurnal({ jurnal }: DaftarJurnalProps) {
     <ul className="daftar-jurnal">
       {jurnal.map((j) => (
         <li key={j.id}>
-          <h3>{j.kegiatan}</h3>
-          <InfoBaris label="Tanggal" nilai={formatTanggal(j.tanggal)} />
-          <InfoBaris label="Review" nilai={j.statusReview} />
-          {/* Field opsional: null tidak tampil */}
-          {j.hambatan && <InfoBaris label="Hambatan" nilai={j.hambatan} />}
-          {/* Perbandingan boolean (> 0), bukan j.lampiran.length && ... */}
-          {j.lampiran.length > 0 && <InfoBaris label="Lampiran" nilai={j.lampiran.join(", ")} />}
+          <JurnalCard jurnal={j} onHapus={onHapus} />
         </li>
       ))}
     </ul>

@@ -4,14 +4,15 @@ import DaftarPeserta from "./components/DaftarPeserta";
 import HasilJurnal from "./components/HasilJurnal";
 import JumlahJurnal from "./components/JumlahJurnal";
 import JurnalTerbaru from "./components/JurnalTerbaru";
-import Kartu from "./components/Kartu";
 import NomorUrut from "./components/NomorUrut";
 import PesertaCard from "./components/PesertaCard";
 import PesertaRingkas from "./components/PesertaRingkas";
 import PesertaTanpaEmail from "./components/PesertaTanpaEmail";
 import RingkasanJurnal from "./components/RingkasanJurnal";
+import Kartu from "./components/ui/Kartu";
 import { jurnalTiruan } from "./data/jurnalTiruan";
 import { pesertaTiruan } from "./data/pesertaTiruan";
+import GaleriKomponen from "./pages/GaleriKomponen";
 
 export default function App() {
   const pertama = pesertaTiruan[0];
@@ -39,17 +40,17 @@ export default function App() {
         <ul>
           <li>
             <a href="https://react.dev/learn" target="_blank" rel="noreferrer">
-              React (resmi)
+              React (resmi) (tab baru)
             </a>
           </li>
           <li>
             <a href="https://vite.dev/guide/" target="_blank" rel="noreferrer">
-              Vite
+              Vite (tab baru)
             </a>
           </li>
           <li>
             <a href="https://react-typescript-cheatsheet.netlify.app/" target="_blank" rel="noreferrer">
-              React TypeScript Cheatsheet
+              React TypeScript Cheatsheet (tab baru)
             </a>
           </li>
         </ul>
@@ -111,6 +112,9 @@ export default function App() {
       <Kartu judul="HasilJurnal: gagal">
         <HasilJurnal status="gagal" pesan="Koneksi terputus" />
       </Kartu>
+
+      {/* Kamis: galeri semua komponen UI (halaman sementara) */}
+      <GaleriKomponen />
     </main>
   );
 }

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import styles from "./Kartu.module.css";
 
 interface KartuProps {
   judul: string;
@@ -7,8 +8,8 @@ interface KartuProps {
 
 export default function Kartu({ judul, children }: KartuProps) {
   return (
-    <section className="kartu">
-      <h2>{judul}</h2>
+    <section className={styles.kartu}>
+      <h2 className={styles.judul}>{judul}</h2>
       <div>{children}</div>
     </section>
   );

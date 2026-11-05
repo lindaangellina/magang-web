@@ -1,0 +1,13 @@
+.baris {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+}
+
+.catatan {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+  color: var(--warna-netral);
+}

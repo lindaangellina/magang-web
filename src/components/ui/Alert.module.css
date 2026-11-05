@@ -1,0 +1,21 @@
+.alert {
+  padding: 0.75rem 1rem;
+  border: 1px solid;
+  border-radius: var(--jari-jari);
+  margin: 0.5rem 0;
+}
+
+.info {
+  background: var(--warna-utama-muda);
+  border-color: var(--warna-utama);
+}
+
+.sukses {
+  background: var(--warna-sukses-muda);
+  border-color: var(--warna-sukses);
+}
+
+.bahaya {
+  background: var(--warna-bahaya-muda);
+  border-color: var(--warna-bahaya);
+}

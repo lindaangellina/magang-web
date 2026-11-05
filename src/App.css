@@ -10,18 +10,6 @@ main h1 {
   line-height: 1.2;
 }
 
-.kartu {
-  border: 1px solid #555;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-}
-
-.kartu h2 {
-  margin-top: 0;
-  font-size: 1.2rem;
-}
-
 .daftar {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -29,9 +17,10 @@ main h1 {
 }
 
 .peserta-card {
-  border: 1px solid #777;
-  border-radius: 6px;
+  border: 1px solid var(--warna-garis);
+  border-radius: var(--jari-jari);
   padding: 0.75rem;
+  background: var(--warna-permukaan);
 }
 
 .peserta-card h3 {
@@ -53,15 +42,4 @@ main h1 {
   margin: 0;
   display: grid;
   gap: 0.75rem;
-}
-
-.daftar-jurnal li {
-  border: 1px solid #777;
-  border-radius: 6px;
-  padding: 0.75rem;
-}
-
-.daftar-jurnal h3 {
-  margin: 0 0 0.5rem;
-  font-size: 1.05rem;
 }
