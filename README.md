@@ -101,3 +101,53 @@ App
 ```
 
 Data hanya mengalir dari induk ke anak lewat props; anak hanya membaca props dan tidak mengubahnya.
+
+## Catatan Minggu 17 Rabu
+
+### Soal 1: peringatan key
+
+Setelah `key={p.id}` dihapus dari `<li>` di `DaftarPeserta`, konsol browser menampilkan:
+
+```
+Each child in a list should have a unique "key" prop.
+
+Check the render method of `DaftarPeserta`. See https://react.dev/link/warning-keys for more information.
+```
+
+Peringatan itu menunjuk `DaftarPeserta.tsx` baris 15 (`<li>` di dalam `.map`).
+
+Diperbaiki dengan mengembalikan `key={p.id}`.
+
+### Soal 2: keadaan kosong
+
+`DaftarPeserta` memakai early return: kalau `peserta.length === 0`, komponen langsung mengembalikan `<p>Belum ada peserta.</p>`. Diuji dengan `<DaftarPeserta peserta={[]} />` di `App.tsx`.
+
+### Soal 4: jebakan 0 &&
+
+Dengan `{jumlah && <p>Total {jumlah} jurnal</p>}` dan `jumlah = 0`, yang tampil di layar adalah:
+
+Angka `0` tampil sendiri sebagai satu baris di bawah "Total 4 jurnal", di kartu "Ringkasan Jurnal".
+
+Penyebabnya: `0 && ...` menghasilkan angka `0`, dan React menampilkan angka 0 sebagai teks (berbeda dengan `false`, `null`, atau string kosong yang tidak tampil). Diperbaiki dengan perbandingan boolean: `{jumlah > 0 && <p>Total {jumlah} jurnal</p>}`.
+
+### Soal 5: turunan data
+
+`RingkasanJurnal` menghitung total, sudah direview, dan belum direview dengan `filter` langsung saat render dari props, tanpa menyimpan hasilnya di variabel terpisah di luar komponen. Kalau data berubah, hasilnya otomatis ikut berubah.
+
+### Soal 6: urut tanpa merusak data
+
+`JurnalTerbaru` mengurutkan salinan: `[...jurnal].sort(...)`. Buktinya, kartu "Jurnal (urutan asli)" di bawahnya tetap menampilkan urutan semula (id 1, 2, 3, 4), sedangkan kartu "Jurnal Terbaru" menampilkan id 4, 2, 3, 1.
+
+### Soal 7: props union
+
+`HasilJurnal` mendukung tiga status (`memuat`, `berhasil` dengan `data`, `gagal` dengan `pesan`), dan ketiganya diuji di `App.tsx`. Percobaan `<HasilJurnal status="berhasil" />` tanpa `data` ditolak TypeScript:
+
+```
+Type '{ status: "berhasil"; }' is not assignable to type 'IntrinsicAttributes & HasilJurnalProps'. ts(2322)
+Property 'data' is missing in type '{ status: "berhasil"; }' but required in type '{ status: "berhasil"; data: Jurnal[]; }'.
+'data' is declared here. (HasilJurnal.tsx, baris 7)
+```
+
+### Soal 8: kenapa key sebaiknya ID dari database, bukan indeks
+
+Key dipakai React untuk mengenali item mana yang sama saat daftar berubah (ditambah, dihapus, atau diurutkan ulang). ID dari database melekat pada datanya sehingga tetap sama walaupun posisinya berpindah, sedangkan indeks menempel pada posisi. Kalau item pertama dihapus, item kedua berpindah ke indeks 0 dan React mengira itu item yang sama, sehingga kondisi seperti isi input bisa menempel di item yang salah. Karena itu key harus unik di antara saudaranya dan stabil, yaitu ID dari data, bukan indeks atau `Math.random()`.
