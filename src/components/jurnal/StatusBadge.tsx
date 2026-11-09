@@ -3,15 +3,13 @@ import type { StatusReview } from "../../types/jurnal";
 
 const label: Record<StatusReview, string> = {
   belum: "Belum direview",
-  disetujui: "Disetujui",
-  ditolak: "Ditolak",
+  sudah: "Sudah direview",
 };
 
-const variasi = {
+const variasi: Record<StatusReview, "netral" | "sukses"> = {
   belum: "netral",
-  disetujui: "sukses",
-  ditolak: "bahaya",
-} as const;
+  sudah: "sukses",
+};
 
 export default function StatusBadge({ status }: { status: StatusReview }) {
   return <Badge variasi={variasi[status]}>{label[status]}</Badge>;

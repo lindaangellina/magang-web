@@ -1,19 +1,60 @@
 # magang-web
 
-Antarmuka web untuk API Magang Batch 4, dibangun dengan React + TypeScript + Vite. Proyek ini adalah pembuka Fase 3 dan dikerjakan terpisah dari backend (`api-magang`).
+Halaman daftar jurnal harian peserta magang, dibangun dengan React + TypeScript + Vite. Proyek ini adalah pembuka Fase 3 dan dikerjakan terpisah dari backend (`api-magang`). Di Minggu 17 datanya masih tiruan (statis) dengan bentuk yang sama dengan response API; state dan pemanggilan API menyusul di Minggu 18 dan 19.
+
+Halaman menampilkan: header dengan nama peserta, ringkasan (total, sudah direview, belum), dan daftar jurnal dari yang terbaru. Setiap jurnal menampilkan tanggal, status review, kegiatan, hambatan, catatan mentor, lampiran, dan tautan commit; field yang kosong atau `null` tidak ditampilkan.
 
 ## Menjalankan
 
 Syarat: Node.js 22 LTS atau lebih baru.
 
 ```bash
+git clone https://github.com/lindaangellina/magang-web.git
+cd magang-web
 npm install
 npm run dev       # dev server di http://localhost:5173
+npm run lint      # periksa gaya kode (ESLint)
 npm run build     # periksa tipe (tsc) lalu bangun versi produksi ke dist/
 npm run preview   # jalankan hasil build di http://localhost:4173
 ```
 
+Galeri semua komponen UI (halaman sementara) dibuka di `http://localhost:5173/?halaman=galeri`.
+
 Catatan versi: template Vite terbaru memasang TypeScript 7, yang bentrok dengan `typescript-eslint` (butuh di bawah 6.1). Solusinya TypeScript diturunkan ke 5.9 (`npm install -D typescript@~5.9.0`).
+
+## Struktur Folder
+
+```
+src/
+├── components/
+│   ├── ui/          Button, Alert, Kartu, Badge (generik, tanpa tahu soal jurnal)
+│   ├── jurnal/      JurnalCard, DaftarJurnal, StatusBadge, RingkasanJurnal, DetailLampiran
+│   └── layout/      Header
+├── data/            data tiruan: jurnal.ts, pesertaTiruan.ts (sementara)
+├── pages/           GaleriKomponen (halaman sementara)
+├── types/           peserta.ts, jurnal.ts
+├── utils/           cx.ts, format.ts, jurnal.ts (hitungRingkasan, urutkanTerbaru)
+├── App.tsx          hanya menyusun halaman
+├── App.module.css
+├── main.tsx
+└── index.css        variabel desain (design token)
+```
+
+Setiap komponen punya `.module.css` sendiri (CSS Modules) dan memakai variabel desain dari `index.css`.
+
+## Tiga Keputusan Desain
+
+1. **Komponen `ui` dipisah dari komponen `jurnal`.** `Button`, `Alert`, `Badge`, dan `Kartu` tidak mengenal istilah jurnal, jadi bisa dipakai ulang di halaman lain (peserta, mentor). Komponen `jurnal` yang menyusun komponen `ui`: contohnya `StatusBadge` hanya menerjemahkan status review menjadi `Badge` berwarna, sehingga warna tidak ditulis dua kali.
+2. **Turunan data dihitung di fungsi murni, bukan ditulis manual atau disimpan.** `hitungRingkasan` menghitung total, sudah, dan belum langsung dari array setiap render, sehingga angkanya tidak mungkin berbeda dari datanya. `urutkanTerbaru` mengurutkan salinan (`[...jurnal].sort(...)`) karena `sort` mengubah array dan props tidak boleh diubah. Fungsi murni di `utils` juga lebih mudah diuji nanti.
+3. **Field opsional dari API ditangani di titik tampilnya.** Field bisa `undefined` atau `null`, jadi `JurnalCard` memakai pemeriksaan `&&` untuk hambatan, catatan mentor, dan tautan commit, serta `lampiran ?? []` untuk lampiran. Hasilnya teks "null" atau elemen kosong tidak pernah muncul. Daftar lampiran memakai elemen bawaan `<details>`, jadi bisa dibuka dengan keyboard tanpa `useState`, yang baru dipelajari Minggu 18.
+
+Bonus yang dikerjakan: komponen `DetailLampiran`, varian tampilan padat untuk `JurnalCard` (`variasi="padat"`, union string literal), dan halaman galeri komponen tetap dipertahankan.
+
+Catatan: sebagian komponen latihan Selasa sampai Kamis (misalnya `PesertaCard`, `NomorUrut`, `DaftarPeserta`, `HasilJurnal`) tidak dipakai di halaman akhir sehingga dihapus pada Jumat; kodenya tetap ada di riwayat commit. Tipe `Jurnal` mengikuti spesifikasi Jumat (`statusReview` bernilai `belum` atau `sudah`), dan di Minggu 19 akan diganti tipe yang dihasilkan dari dokumen OpenAPI.
+
+## Catatan Latihan Harian (Minggu 17)
+
+Hasil percobaan dan jawaban soal Senin sampai Kamis.
 
 ## Catatan Minggu 17 Senin
 

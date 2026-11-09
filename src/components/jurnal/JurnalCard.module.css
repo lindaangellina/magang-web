@@ -1,13 +1,35 @@
 .card {
   border: 1px solid var(--warna-garis);
   border-radius: var(--jari-jari);
-  padding: 0.75rem;
+  padding: 0.75rem 1rem;
   background: var(--warna-permukaan);
 }
 
-.judul {
-  margin: 0 0 0.5rem;
+.padat {
+  padding: 0.4rem 0.75rem;
+}
+
+.atas {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.tanggal {
+  color: var(--warna-netral);
+  font-size: 0.9rem;
+}
+
+.kegiatan {
+  margin: 0.25rem 0 0.5rem;
   font-size: 1.05rem;
+}
+
+.padat .kegiatan {
+  margin-bottom: 0;
+  font-size: 0.95rem;
 }
 
 .baris {
@@ -16,6 +38,18 @@
 
 .label {
   font-weight: 600;
+}
+
+.bawah {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  margin-top: 0.5rem;
+}
+
+.lampiran summary {
+  cursor: pointer;
 }
 
 .aksi {

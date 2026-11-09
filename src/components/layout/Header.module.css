@@ -1,0 +1,22 @@
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--warna-garis);
+}
+
+.judul {
+  margin: 0;
+  font-size: 1.6rem;
+  line-height: 1.2;
+}
+
+.nama {
+  margin: 0;
+  font-weight: 600;
+  color: var(--warna-netral);
+}

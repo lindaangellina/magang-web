@@ -1,28 +1,30 @@
 import type { FormEvent, MouseEvent } from "react";
+import DetailLampiran from "../components/jurnal/DetailLampiran";
 import JurnalCard from "../components/jurnal/JurnalCard";
 import StatusBadge from "../components/jurnal/StatusBadge";
 import Alert from "../components/ui/Alert";
 import Badge from "../components/ui/Badge";
 import Button from "../components/ui/Button";
 import Kartu from "../components/ui/Kartu";
-import { jurnalTiruan } from "../data/jurnalTiruan";
+import { jurnalTiruan } from "../data/jurnal";
 import styles from "./GaleriKomponen.module.css";
 
-// Soal 6: event bertipe
 function cetakKoordinat(e: MouseEvent<HTMLButtonElement>) {
   console.log("Diklik di posisi", e.clientX, e.clientY);
 }
 
-// Soal 2c: tombol type="submit" men-submit form, tombol bawaan (type="button") tidak
+// tombol type="submit" men-submit form, tombol bawaan (type="button") tidak
 function kirimForm(e: FormEvent<HTMLFormElement>) {
   e.preventDefault();
   console.log("form terkirim");
 }
 
-// Halaman sementara: acuan visual semua varian komponen UI
+// Halaman sementara: acuan visual semua varian komponen. Buka lewat /?halaman=galeri
 export default function GaleriKomponen() {
   return (
     <>
+      <h1>Galeri Komponen</h1>
+
       <Kartu judul="Galeri: Button">
         <div className={styles.baris}>
           <Button variant="primary">Primary md</Button>
@@ -42,13 +44,12 @@ export default function GaleriKomponen() {
         <p className={styles.catatan}>
           Tombol yang pucat sedang nonaktif (disabled), jadi dilewati saat menekan Tab.
         </p>
-        <p className={styles.catatan}>Soal 2b: onClick, disabled, dan type langsung bisa dipakai.</p>
         <form onSubmit={kirimForm} className={styles.baris}>
           <Button>type bawaan (button)</Button>
-          <Button type="submit">type="submit"</Button>
+          <Button type="submit">type=&quot;submit&quot;</Button>
         </form>
         <p className={styles.catatan}>
-          Soal 2c: klik tombol pertama: konsol diam. Klik tombol kedua: konsol menulis &quot;form terkirim&quot;.
+          Klik tombol pertama: konsol diam. Klik tombol kedua: konsol menulis &quot;form terkirim&quot;.
         </p>
       </Kartu>
 
@@ -67,8 +68,7 @@ export default function GaleriKomponen() {
         </div>
         <div className={styles.baris}>
           <StatusBadge status="belum" />
-          <StatusBadge status="disetujui" />
-          <StatusBadge status="ditolak" />
+          <StatusBadge status="sudah" />
         </div>
       </Kartu>
 
@@ -78,11 +78,17 @@ export default function GaleriKomponen() {
         </Kartu>
       </Kartu>
 
-      <Kartu judul="Galeri: JurnalCard dan callback">
-        <p className={styles.catatan}>Tanpa onHapus: tombol Hapus tidak ada.</p>
+      <Kartu judul="Galeri: JurnalCard">
+        <p className={styles.catatan}>Normal, tanpa onHapus (semua field terisi):</p>
         <JurnalCard jurnal={jurnalTiruan[0]} />
-        <p className={styles.catatan}>Dengan onHapus: klik Hapus, konsol menulis id jurnalnya.</p>
+        <p className={styles.catatan}>Normal, dengan onHapus (field null tidak tampil). Klik Hapus: konsol menulis id.</p>
         <JurnalCard jurnal={jurnalTiruan[1]} onHapus={(id) => console.log("hapus", id)} />
+        <p className={styles.catatan}>Varian padat:</p>
+        <JurnalCard jurnal={jurnalTiruan[2]} variasi="padat" />
+      </Kartu>
+
+      <Kartu judul="Galeri: DetailLampiran">
+        <DetailLampiran lampiran={jurnalTiruan[3].lampiran ?? []} />
       </Kartu>
 
       <Kartu judul="Galeri: Event bertipe">

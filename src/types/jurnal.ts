@@ -1,12 +1,21 @@
 // Cerminan schema Jurnal di dokumentasi API (Swagger)
-export type StatusReview = "belum" | "disetujui" | "ditolak";
+// Perhatikan: field opsional dari API bisa bernilai null, bukan hanya undefined.
+export type StatusReview = "belum" | "sudah";
+
+export interface Lampiran {
+  url: string;
+  keterangan?: string;
+}
 
 export interface Jurnal {
   id: number;
-  tanggal: string; // string ISO dari API, mis. "2026-10-28T03:15:00.000Z"
+  pesertaId: number;
   kegiatan: string;
-  hambatan: string | null; // boleh null: tidak semua jurnal punya hambatan
-  rencanaBesok: string;
+  hambatan?: string | null;
+  linkCommit?: string | null;
+  lampiran?: Lampiran[] | null;
   statusReview: StatusReview;
-  lampiran: string[]; // nama file; bisa berupa array kosong
+  catatanMentor?: string | null;
+  createdAt: string; // tanggal ISO 8601, mis. "2026-10-28T03:15:00.000Z"
 }
+// Di Minggu 19, tipe tulisan tangan ini diganti tipe yang DIHASILKAN dari dokumen OpenAPI.

@@ -1,120 +1,40 @@
-import "./App.css";
-import DaftarJurnal from "./components/DaftarJurnal";
-import DaftarPeserta from "./components/DaftarPeserta";
-import HasilJurnal from "./components/HasilJurnal";
-import JumlahJurnal from "./components/JumlahJurnal";
-import JurnalTerbaru from "./components/JurnalTerbaru";
-import NomorUrut from "./components/NomorUrut";
-import PesertaCard from "./components/PesertaCard";
-import PesertaRingkas from "./components/PesertaRingkas";
-import PesertaTanpaEmail from "./components/PesertaTanpaEmail";
-import RingkasanJurnal from "./components/RingkasanJurnal";
-import Kartu from "./components/ui/Kartu";
-import { jurnalTiruan } from "./data/jurnalTiruan";
+import styles from "./App.module.css";
+import DaftarJurnal from "./components/jurnal/DaftarJurnal";
+import RingkasanJurnal from "./components/jurnal/RingkasanJurnal";
+import Header from "./components/layout/Header";
+import { jurnalTiruan } from "./data/jurnal";
 import { pesertaTiruan } from "./data/pesertaTiruan";
 import GaleriKomponen from "./pages/GaleriKomponen";
 
+// Sementara (sebelum ada router): galeri komponen dibuka lewat http://localhost:5173/?halaman=galeri
+const tampilkanGaleri = new URLSearchParams(window.location.search).get("halaman") === "galeri";
+
+const pesertaId = 1;
+
 export default function App() {
-  const pertama = pesertaTiruan[0];
-  const kedua = pesertaTiruan[1];
+  if (tampilkanGaleri) {
+    return (
+      <main className={styles.halaman}>
+        <GaleriKomponen />
+      </main>
+    );
+  }
+
+  const peserta = pesertaTiruan.find((p) => p.id === pesertaId);
+  const jurnalPeserta = jurnalTiruan.filter((j) => j.pesertaId === pesertaId);
 
   return (
-    <main>
-      <h1>Jurnal Magang</h1>
-
-      <Kartu judul="Semua Peserta">
-        <div className="daftar">
-          {/* key = id dari data, supaya React mengenali tiap item */}
-          {pesertaTiruan.map((p) => (
-            <PesertaCard key={p.id} peserta={p} />
-          ))}
-        </div>
-      </Kartu>
-
-      {/* Satu komponen Kartu, tiga isi berbeda: profil, daftar tautan, teks biasa */}
-      <Kartu judul="Profil Peserta (dengan email)">
-        <PesertaCard peserta={pertama} tampilkanEmail />
-      </Kartu>
-
-      <Kartu judul="Tautan Belajar">
-        <ul>
-          <li>
-            <a href="https://react.dev/learn" target="_blank" rel="noreferrer">
-              React (resmi) (tab baru)
-            </a>
-          </li>
-          <li>
-            <a href="https://vite.dev/guide/" target="_blank" rel="noreferrer">
-              Vite (tab baru)
-            </a>
-          </li>
-          <li>
-            <a href="https://react-typescript-cheatsheet.netlify.app/" target="_blank" rel="noreferrer">
-              React TypeScript Cheatsheet (tab baru)
-            </a>
-          </li>
-        </ul>
-      </Kartu>
-
-      <Kartu judul="Catatan">
-        <p>Data mengalir satu arah: dari komponen induk ke komponen anak lewat props.</p>
-      </Kartu>
-
-      <Kartu judul="Versi Ringkas (Pick dan Omit)">
-        <PesertaRingkas nama={pertama.nama} sekolah={pertama.sekolah} fase={pertama.fase} />
-        <PesertaTanpaEmail
-          id={kedua.id}
-          nama={kedua.nama}
-          sekolah={kedua.sekolah}
-          fase={kedua.fase}
-          status={kedua.status}
-          role={kedua.role}
-        />
-      </Kartu>
-
-      <Kartu judul="Nomor Urut (komponen murni)">
-        <NomorUrut nomor={1} />
-        <NomorUrut nomor={2} />
-        <NomorUrut nomor={3} />
-      </Kartu>
-
-      {/* Rabu: daftar, key, dan rendering bersyarat */}
-      <Kartu judul="Daftar Peserta (map dan key)">
-        <DaftarPeserta peserta={pesertaTiruan} />
-      </Kartu>
-
-      <Kartu judul="Daftar Peserta Kosong (early return)">
-        <DaftarPeserta peserta={[]} />
-      </Kartu>
-
-      <Kartu judul="Ringkasan Jurnal">
-        <JumlahJurnal jumlah={jurnalTiruan.length} />
-        <JumlahJurnal jumlah={0} />
-        <RingkasanJurnal jurnal={jurnalTiruan} />
-      </Kartu>
-
-      <Kartu judul="Jurnal Terbaru (salinan diurutkan)">
-        <JurnalTerbaru jurnal={jurnalTiruan} />
-      </Kartu>
-
-      <Kartu judul="Jurnal (urutan asli, tidak berubah)">
-        <DaftarJurnal jurnal={jurnalTiruan} />
-      </Kartu>
-
-      <Kartu judul="HasilJurnal: memuat">
-        <HasilJurnal status="memuat" />
-      </Kartu>
-
-      <Kartu judul="HasilJurnal: berhasil">
-        <HasilJurnal status="berhasil" data={jurnalTiruan} />
-      </Kartu>
-
-      <Kartu judul="HasilJurnal: gagal">
-        <HasilJurnal status="gagal" pesan="Koneksi terputus" />
-      </Kartu>
-
-      {/* Kamis: galeri semua komponen UI (halaman sementara) */}
-      <GaleriKomponen />
-    </main>
+    <div className={styles.halaman}>
+      <Header judul="Jurnal Magang" namaPeserta={peserta?.nama ?? "Peserta tidak ditemukan"} />
+      <main className={styles.utama}>
+        <RingkasanJurnal jurnal={jurnalPeserta} />
+        <section aria-labelledby="judul-daftar">
+          <h2 id="judul-daftar" className={styles.judulDaftar}>
+            Daftar Jurnal
+          </h2>
+          <DaftarJurnal jurnal={jurnalPeserta} />
+        </section>
+      </main>
+    </div>
   );
 }

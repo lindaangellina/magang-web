@@ -1,0 +1,15 @@
+.halaman {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.utama {
+  display: grid;
+  gap: 1rem;
+}
+
+.judulDaftar {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+}
