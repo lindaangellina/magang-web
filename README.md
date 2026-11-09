@@ -254,3 +254,46 @@ Penjelasan: `onHapus(jurnal.id)` adalah pemanggilan fungsi, jadi dijalankan saat
 | 3 | Tiga tautan "Tautan Belajar" membuka tab baru (`target="_blank"`) tanpa pemberitahuan | Menambahkan teks "(tab baru)" di setiap tautan |
 
 Catatan: tombol Hapus yang kelak muncul berkali-kali di daftar akan terdengar sama bagi pembaca layar; perbaikannya `aria-label` yang menyebut kegiatannya, dikerjakan saat daftar jurnal dipakai di halaman sungguhan.
+
+## Catatan Minggu 18 Senin: useState
+
+### Soal 2: variabel biasa gagal
+
+`PenghitungLet` memakai `let jumlah`. Setiap tombol diklik, `console.log` menampilkan angka yang naik (1, 2, 3), tetapi layar tetap "Jumlah (let): 0". Dua alasannya: (1) React tidak tahu variabel biasa berubah, jadi komponen tidak digambar ulang; (2) kalaupun digambar ulang, fungsi komponen dijalankan dari awal sehingga `jumlah` kembali 0. ESLint (`react-hooks/immutability`) juga menolak file ini dengan pesan "Cannot reassign variable after render completes... Consider using state instead", jadi saya mematikan aturan itu hanya untuk file demo tersebut dengan komentar penjelasan.
+
+### Soal 3 dan 6: Penghitung dan state milik instans
+
+`Penghitung` memakai `useState(0)` dengan tombol Tambah, Kurang (memakai `Math.max(0, j - 1)` supaya tidak di bawah 0), dan Reset. Dua `<Penghitung />` berdampingan punya state terpisah: mengklik satu tidak mengubah yang lain. Di React DevTools (tab Components) nilai `State` salah satunya bisa diubah langsung, dan hanya penghitung itu yang berubah angkanya.
+
+### Soal 4: snapshot
+
+| Fungsi | Hasil setelah satu klik | Penjelasan |
+|---|---|---|
+| `tambahTigaSalah` | 1 | Tiga kali `setJumlah(jumlah + 1)`, dan `jumlah` di render itu tetap 0, jadi ketiganya menjadwalkan nilai 1 |
+| `tambahTigaBenar` | 3 | `setJumlah((j) => j + 1)` memakai nilai terbaru dari antrean |
+
+`console.log(jumlah)` tepat setelah `setJumlah` menampilkan nilai lama (0) karena state adalah foto pada saat render. Setter hanya meminta React menggambar ulang dengan nilai baru, dan nilai itu baru terlihat di render berikutnya.
+
+### Soal 5: toggle detail di JurnalCard
+
+`JurnalCard` punya state `terbuka` (boolean). Tombol "Tampilkan detail" / "Sembunyikan detail" memakai `aria-expanded` dan `aria-controls`. Hambatan, catatan mentor, dan lampiran hanya dirender saat `terbuka` bernilai true. Tombol hanya muncul jika kartu punya detail (nilai turunan `adaDetail`, bukan state). Setiap kartu punya state sendiri, jadi membuka satu kartu tidak membuka kartu lain.
+
+### Soal 7: mengetik state
+
+| Pemanggilan | Tipe |
+|---|---|
+| `useState("")` | string (diinfer) |
+| `useState(false)` | boolean (diinfer) |
+| `useState<Jurnal[]>([])` | array objek |
+| `useState<Jurnal \| null>(null)` | objek atau null |
+| `useState<"semua" \| StatusReview>("semua")` | union literal |
+
+`useState([])` bermasalah karena TypeScript menginfer `never[]`: array yang tidak boleh berisi apa pun. Akibatnya `setDaftar(jurnalTiruan)` ditolak. Array kosong wajib diberi generic.
+
+### Soal 8: melanggar aturan hooks
+
+`useState` saya pindahkan ke dalam `if (jumlah > 0)` di `Penghitung`. ESLint langsung menegur: `React Hook "useState" is called conditionally. React Hooks must be called in the exact same order in every component render. (react-hooks/rules-of-hooks)`. Saat tombol Tambah diklik, konsol browser menampilkan `React has detected a change in the order of Hooks called by Penghitung` beserta `Uncaught Error: Rendered more hooks than during the previous render`, dan halaman menjadi kosong. Pada render pertama (jumlah 0) komponen memanggil satu hook, pada render kedua (jumlah 1) dua hook. React mengenali state dari urutan pemanggilan hook, sehingga urutannya harus sama di setiap render. Setelah blok itu dihapus, error hilang.
+
+### Soal 9: props, state, dan data turunan
+
+Props adalah data yang diberikan komponen induk dan hanya boleh dibaca, contohnya `jurnal` dan `onHapus` yang diterima `JurnalCard`. State adalah data milik komponen itu sendiri yang bisa berubah lewat setter dan membuat tampilan digambar ulang, contohnya `terbuka` di `JurnalCard` yang menentukan apakah detail tampil. Data turunan adalah nilai yang bisa dihitung dari props atau state yang sudah ada, sehingga tidak perlu disimpan sebagai state baru, contohnya jumlah jurnal yang belum direview dari `hitungRingkasan(jurnal)` yang dihitung saat render. Kalau nilai itu disimpan sebagai state, ia bisa tidak sinkron dengan data aslinya.

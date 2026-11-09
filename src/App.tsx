@@ -4,15 +4,24 @@ import RingkasanJurnal from "./components/jurnal/RingkasanJurnal";
 import Header from "./components/layout/Header";
 import { jurnalTiruan } from "./data/jurnal";
 import { pesertaTiruan } from "./data/pesertaTiruan";
+import LatihanSenin from "./latihan/LatihanSenin";
 import GaleriKomponen from "./pages/GaleriKomponen";
 
-// Sementara (sebelum ada router): galeri komponen dibuka lewat http://localhost:5173/?halaman=galeri
-const tampilkanGaleri = new URLSearchParams(window.location.search).get("halaman") === "galeri";
+// Sementara (sebelum ada router): halaman bantu dibuka lewat ?halaman=galeri atau ?halaman=latihan
+const halaman = new URLSearchParams(window.location.search).get("halaman");
 
 const pesertaId = 1;
 
 export default function App() {
-  if (tampilkanGaleri) {
+  if (halaman === "latihan") {
+    return (
+      <main className={styles.halaman}>
+        <LatihanSenin />
+      </main>
+    );
+  }
+
+  if (halaman === "galeri") {
     return (
       <main className={styles.halaman}>
         <GaleriKomponen />

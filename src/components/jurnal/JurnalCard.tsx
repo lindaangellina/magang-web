@@ -1,3 +1,4 @@
+import { useId, useState } from "react";
 import type { Jurnal } from "../../types/jurnal";
 import { cx } from "../../utils/cx";
 import { formatTanggal } from "../../utils/format";
@@ -13,9 +14,15 @@ interface JurnalCardProps {
 }
 
 export default function JurnalCard({ jurnal, variasi = "normal", onHapus }: JurnalCardProps) {
+  // State milik kartu ini saja: setiap JurnalCard punya "terbuka" sendiri
+  const [terbuka, setTerbuka] = useState(false);
+  const idDetail = useId();
+
   const padat = variasi === "padat";
   // Field dari API bisa undefined atau null; jadikan array kosong supaya aman dipakai
   const lampiran = jurnal.lampiran ?? [];
+  // Data turunan (bukan state): tombol detail hanya perlu ada kalau ada yang bisa ditampilkan
+  const adaDetail = Boolean(jurnal.hambatan) || Boolean(jurnal.catatanMentor) || lampiran.length > 0;
 
   return (
     <article className={cx(styles.card, padat && styles.padat)}>
@@ -29,30 +36,45 @@ export default function JurnalCard({ jurnal, variasi = "normal", onHapus }: Jurn
 
       {!padat && (
         <>
-          {/* null, undefined, dan string kosong tidak menampilkan apa-apa */}
-          {jurnal.hambatan && (
-            <p className={styles.baris}>
-              <span className={styles.label}>Hambatan:</span> {jurnal.hambatan}
-            </p>
+          {adaDetail && (
+            <Button
+              variant="secondary"
+              ukuran="sm"
+              aria-expanded={terbuka}
+              aria-controls={idDetail}
+              onClick={() => setTerbuka((t) => !t)}
+            >
+              {terbuka ? "Sembunyikan detail" : "Tampilkan detail"}
+            </Button>
           )}
-          {jurnal.catatanMentor && (
-            <p className={styles.baris}>
-              <span className={styles.label}>Catatan mentor:</span> {jurnal.catatanMentor}
-            </p>
-          )}
-          {(lampiran.length > 0 || jurnal.linkCommit) && (
-            <div className={styles.bawah}>
+
+          {adaDetail && terbuka && (
+            <div id={idDetail} className={styles.detail}>
+              {/* null, undefined, dan string kosong tidak menampilkan apa-apa */}
+              {jurnal.hambatan && (
+                <p className={styles.baris}>
+                  <span className={styles.label}>Hambatan:</span> {jurnal.hambatan}
+                </p>
+              )}
+              {jurnal.catatanMentor && (
+                <p className={styles.baris}>
+                  <span className={styles.label}>Catatan mentor:</span> {jurnal.catatanMentor}
+                </p>
+              )}
               {lampiran.length > 0 && (
                 <details className={styles.lampiran}>
                   <summary>Lampiran ({lampiran.length})</summary>
                   <DetailLampiran lampiran={lampiran} />
                 </details>
               )}
-              {jurnal.linkCommit && (
-                <a href={jurnal.linkCommit} target="_blank" rel="noreferrer">
-                  Lihat commit (tab baru)
-                </a>
-              )}
+            </div>
+          )}
+
+          {jurnal.linkCommit && (
+            <div className={styles.bawah}>
+              <a href={jurnal.linkCommit} target="_blank" rel="noreferrer">
+                Lihat commit (tab baru)
+              </a>
             </div>
           )}
           {onHapus && (
