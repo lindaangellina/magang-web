@@ -3,7 +3,7 @@ import { hitungRingkasan } from "../../utils/jurnal";
 import styles from "./RingkasanJurnal.module.css";
 
 interface RingkasanJurnalProps {
-  jurnal: Jurnal[];
+  jurnal: readonly Jurnal[];
 }
 
 export default function RingkasanJurnal({ jurnal }: RingkasanJurnalProps) {

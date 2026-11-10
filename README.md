@@ -297,3 +297,44 @@ Catatan: tombol Hapus yang kelak muncul berkali-kali di daftar akan terdengar sa
 ### Soal 9: props, state, dan data turunan
 
 Props adalah data yang diberikan komponen induk dan hanya boleh dibaca, contohnya `jurnal` dan `onHapus` yang diterima `JurnalCard`. State adalah data milik komponen itu sendiri yang bisa berubah lewat setter dan membuat tampilan digambar ulang, contohnya `terbuka` di `JurnalCard` yang menentukan apakah detail tampil. Data turunan adalah nilai yang bisa dihitung dari props atau state yang sudah ada, sehingga tidak perlu disimpan sebagai state baru, contohnya jumlah jurnal yang belum direview dari `hitungRingkasan(jurnal)` yang dihitung saat render. Kalau nilai itu disimpan sebagai state, ia bisa tidak sinkron dengan data aslinya.
+
+## Catatan Minggu 18 Selasa: state immutable dan lifting state up
+
+### Soal 1 dan 2: Hapus dan ubah status
+
+State jurnal (`useState<Jurnal[]>(jurnalTiruan)`) saya pindahkan ke `App`, sehingga `App` menjadi satu-satunya pemilik data. `hapusJurnal` memakai `filter`, sedangkan `ubahStatus` memakai `map` dan spread `{ ...j, statusReview: status }`. Keduanya mengembalikan array baru lewat bentuk fungsi `setJurnal((daftar) => ...)`. `DaftarJurnal` dan `JurnalCard` hanya menerima callback `onHapus` dan `onUbahStatus`, dan `RingkasanJurnal` ikut berubah otomatis karena angkanya dihitung dari state yang sama. Daftar jurnal per peserta tetap data turunan (`jurnal.filter(...)` saat render), bukan state kedua.
+
+### Soal 3: readonly
+
+Props array saya ketik `readonly Jurnal[]` (`DaftarJurnal`, `RingkasanJurnal`, `hitungRingkasan`, `urutkanTerbaru`). Saat saya menulis `jurnal.push(...)` di komponen anak, TypeScript menolak: `Property 'push' does not exist on type 'readonly Jurnal[]'. ts(2339)`. Setelah itu baris tersebut saya hapus.
+
+### Soal 4: mutasi
+
+`hapusSalah` memakai `splice` lalu `setDaftar(daftar)`. Gejalanya: konsol menampilkan isi array yang sudah berkurang, tetapi layar tidak berubah. Barisnya baru hilang setelah saya menekan "Picu render lain". Penyebabnya, array yang diberikan ke `setDaftar` masih referensi yang sama, sehingga React membandingkan dengan `Object.is`, menganggap tidak ada perubahan, dan tidak menggambar ulang. Versi benar memakai `filter`, yang menghasilkan array baru, sehingga baris langsung hilang.
+
+### Soal 5: bug key indeks
+
+Pada daftar `key={indeks}`, saya mengetik "AAA" di kolom samping "Satu", lalu menghapus yang pertama. "Satu" hilang, tetapi "AAA" berpindah ke samping "Dua". Pada daftar `key={nama}` saya mengetik "BBB" di samping "Satu" dengan cara yang sama, dan "BBB" ikut hilang bersama "Satu". React mengenali elemen lewat `key`. Setelah penghapusan, "Dua" berpindah ke indeks 0, sehingga React memakai ulang elemen `li` dengan key 0 beserta isi input-nya untuk "Dua". Input tidak dikontrol oleh data, jadi isinya tertinggal di elemen yang sama. Dengan `key={nama}` setiap item membawa identitasnya sendiri, sehingga isi inputnya ikut hilang bersama item itu.
+
+### Soal 6: fungsi murni untuk daftar
+
+`src/utils/daftar.ts` berisi `tambahPeserta`, `hapusPeserta`, `gantiPeserta`, `ubahStatusPeserta`, dan `urutkanPesertaByNama`. Semuanya menerima `readonly Peserta[]` dan mengembalikan `Peserta[]` baru. Di halaman latihan, data asli `pesertaTiruan` tetap utuh walau daftarnya diubah.
+
+### Soal 7: objek bersarang
+
+State `{ nama, alamat: { kota, kodePos } }` diubah dengan spread bertingkat: `{ ...lama, alamat: { ...lama.alamat, kota: kotaBaru } }`. Hanya `kota` yang berubah, `nama` dan `kodePos` tetap. Tiap tingkat yang berubah harus disalin: objek luar dan objek `alamat`.
+
+### Soal 8: aliran data
+
+```
+App  (state: jurnal; hapusJurnal, ubahStatus)
+ ├─ Header                (props: judul, namaPeserta)
+ ├─ RingkasanJurnal       (props: jurnal)                          data turun
+ └─ DaftarJurnal          (props: jurnal, onHapus, onUbahStatus)   data turun
+      └─ JurnalCard       (props: jurnal, onHapus, onUbahStatus)   data turun
+           ├─ StatusBadge
+           ├─ DetailLampiran
+           └─ Button      (klik) → onHapus(id) / onUbahStatus(id, status)  peristiwa naik
+```
+
+Data turun lewat props dari `App` ke `JurnalCard`. Peristiwa naik lewat callback: klik tombol di `JurnalCard` memanggil `onHapus` atau `onUbahStatus`, yang sebenarnya adalah `hapusJurnal` dan `ubahStatus` milik `App`. Hanya `App` yang memanggil `setJurnal`, lalu semua anak menerima data terbaru.
