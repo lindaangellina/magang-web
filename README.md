@@ -338,3 +338,58 @@ App  (state: jurnal; hapusJurnal, ubahStatus)
 ```
 
 Data turun lewat props dari `App` ke `JurnalCard`. Peristiwa naik lewat callback: klik tombol di `JurnalCard` memanggil `onHapus` atau `onUbahStatus`, yang sebenarnya adalah `hapusJurnal` dan `ubahStatus` milik `App`. Hanya `App` yang memanggil `setJurnal`, lalu semua anak menerima data terbaru.
+
+## Catatan Minggu 18 Rabu: form terkontrol dan validasi
+
+### Soal 1: fungsi validasi
+
+`validasiFormJurnal` (di `src/utils/validasiJurnal.ts`) adalah fungsi murni: menerima nilai form dan mengembalikan objek error per kolom (`Partial<Record<keyof FormJurnalState, string>>`). Hasil ujinya:
+
+| Masukan | Hasil |
+|---|---|
+| Kegiatan 9 karakter | `Kegiatan minimal 10 karakter` |
+| Kegiatan 10 karakter | tidak ada error |
+| Kegiatan 2000 karakter | tidak ada error |
+| Kegiatan 2001 karakter | `Kegiatan maksimal 2000 karakter` |
+| Kegiatan hanya spasi | `Kegiatan minimal 10 karakter` (di-`trim` dulu) |
+| Link `javascript:alert(1)` | `Link commit harus berupa URL yang valid` (protokol selain http/https ditolak) |
+| Link kosong | tidak ada error (kolom opsional) |
+
+### Soal 2: FormJurnal
+
+`FormJurnal` memakai state terkontrol (`value` dan `onChange`), `label` dengan `htmlFor`, `aria-invalid`, `aria-describedby`, dan pesan error `role="alert"`. Form hanya memberi kabar lewat `onTambah`. `App` yang membuat objek `Jurnal` baru (`statusReview: "belum"`, `createdAt` sekarang) dan menaruhnya di paling atas daftar. Kolom opsional yang kosong dikirim sebagai `null`, seperti API. Form dikosongkan setelah berhasil, dan ringkasan ikut berubah karena dihitung dari state yang sama.
+
+### Soal 3: satu handler
+
+Satu fungsi `ubah` melayani semua kolom: `const { name, value } = e.target; setNilai((s) => ({ ...s, [name]: value }))`. Kurung siku membuat nama properti dihitung dari isi variabel `name` saat dijalankan, jadi `name="kegiatan"` mengubah `nilai.kegiatan`. Bahayanya, `name` bertipe `string` biasa sehingga TypeScript tidak bisa memeriksa bahwa nama itu benar-benar kunci state. Kalau atribut `name` salah ketik, state menerima properti baru yang salah tanpa error kompilasi, dan kolom aslinya tidak pernah berubah. Cara yang lebih aman adalah menambah type guard yang memeriksa `name` sebelum dipakai.
+
+### Soal 4: perilaku error
+
+Pesan error sebuah kolom dihapus saat kolom itu mulai diedit (`setErrors` menimpa kunci itu dengan `undefined`). Saat submit gagal, fokus dipindahkan ke kolom pertama yang salah memakai `useRef` pada tiap kolom, lalu `ref.current?.focus()` sesuai urutan kegiatan, hambatan, link commit.
+
+### Soal 5: jebakan form terkontrol
+
+| Kesalahan | Peringatan di konsol | Perbaikan |
+|---|---|---|
+| `<input value="tetap" />` tanpa `onChange` | `You provided a value prop to a form field without an onChange handler. This will render a read-only field. If the field should be mutable use defaultValue. Otherwise, set either onChange or readOnly.` | Tambah `onChange`, atau `readOnly`, atau pakai `defaultValue` |
+| State dimulai dari `undefined` lalu diisi saat mengetik | `A component is changing an uncontrolled input to be controlled. This is likely caused by the value changing from undefined to a defined value, which should not happen.` | Mulai state dari string kosong `""` |
+
+### Soal 6: keyboard
+
+Form diisi dan dikirim hanya dengan keyboard. Urutan Tab: Kegiatan, Hambatan, Link commit, lalu tombol Simpan jurnal, dan Enter pada tombol itu mengirim form. Urutan ini mengikuti urutan elemen di HTML, tanpa `tabindex`. Fokus tampak jelas berkat `:focus-visible`, dan saat submit gagal fokus langsung pindah ke kolom yang salah.
+
+### Soal 7: aman karena React
+
+Jurnal dengan isi `<b>tebal</b>` dan `<img src=x onerror=alert(1)>` tampil persis sebagai teks, lengkap dengan tanda `<` dan `>`. Tidak ada teks tebal dan tidak ada `alert`. React meng-escape teks yang ditampilkan lewat `{}`, sehingga isinya diperlakukan sebagai teks, bukan HTML. Dengan `dangerouslySetInnerHTML`, string itu akan diurai sebagai HTML: `<img src=x>` gagal dimuat, lalu `onerror` menjalankan skrip penyerang. Itu adalah XSS. Karena itu `dangerouslySetInnerHTML` tidak boleh dipakai dengan data dari pengguna atau API tanpa pembersihan. Validasi di klien juga bukan pengaman, karena siapa pun bisa memanggil API langsung. Keamanan sesungguhnya ada di server.
+
+### Soal 8: form Profil
+
+`FormProfil` memakai pola yang sama dengan `FormJurnal`. Nama minimal 3 karakter, dan telepon opsional dengan pola `^08\d{8,12}$` (08 diikuti 8 sampai 12 digit). Fungsi `validasiFormProfil` murni, dan telepon yang kosong dikirim sebagai `null`.
+
+| Telepon | Hasil |
+|---|---|
+| `0812345678` (10 digit) | valid |
+| `08123456789012` (14 digit) | valid |
+| `081234567` (9 digit) | ditolak |
+| `081234567890123` (15 digit) | ditolak |
+| `+62812345678` | ditolak |

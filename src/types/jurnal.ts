@@ -19,3 +19,6 @@ export interface Jurnal {
   createdAt: string; // tanggal ISO 8601, mis. "2026-10-28T03:15:00.000Z"
 }
 // Di Minggu 19, tipe tulisan tangan ini diganti tipe yang DIHASILKAN dari dokumen OpenAPI.
+
+// Data yang diisi pengguna di form tambah jurnal; sisanya (id, status, dst) diisi sistem
+export type JurnalBaru = Pick<Jurnal, "kegiatan" | "hambatan" | "linkCommit">;

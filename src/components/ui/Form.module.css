@@ -1,0 +1,48 @@
+/* Gaya bersama untuk form (FormJurnal, FormProfil) */
+.form {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--warna-garis);
+  border-radius: var(--jari-jari);
+  background: var(--warna-permukaan);
+}
+
+.kolom {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.kontrol {
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--warna-garis);
+  border-radius: var(--jari-jari);
+  font: inherit;
+  background: white;
+}
+
+.kontrol:focus-visible {
+  outline: 3px solid var(--warna-teks);
+  outline-offset: 1px;
+}
+
+.kontrol[aria-invalid="true"] {
+  border-color: var(--warna-bahaya);
+  background: var(--warna-bahaya-muda);
+}
+
+.error {
+  margin: 0;
+  color: var(--warna-bahaya);
+  font-size: 0.85rem;
+}
+
+.aksi {
+  display: flex;
+  gap: 0.5rem;
+}
