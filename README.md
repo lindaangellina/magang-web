@@ -393,3 +393,53 @@ Jurnal dengan isi `<b>tebal</b>` dan `<img src=x onerror=alert(1)>` tampil persi
 | `081234567` (9 digit) | ditolak |
 | `081234567890123` (15 digit) | ditolak |
 | `+62812345678` | ditolak |
+
+## Catatan Minggu 18 Kamis: data turunan, useEffect, dan custom hook
+
+### Soal 1: data turunan
+
+Di `App`, state hanya `jurnal`, `filter`, dan `kataKunci`. Daftar yang tampil dihitung setiap render: `jurnalPeserta.filter(status).filter(kegiatan)`, dan jumlah "Menampilkan x dari y jurnal" juga dihitung dari hasil itu. Urutan terbaru dulu dilakukan di `DaftarJurnal` pada salinan array (`[...jurnal].sort(...)`). Ringkasan tetap dihitung dari semua jurnal, bukan dari yang terfilter. Select status memakai type guard `adalahFilterStatus`, sehingga string dari `e.target.value` menjadi `FilterStatus` tanpa `as`.
+
+### Soal 2: anti-pola
+
+Di halaman latihan, hasil filter saya simpan sebagai state (`tampilSalah`) berdampingan dengan versi data turunan. Saat tombol "Tambah item" diklik, item baru muncul di daftar data turunan, tetapi tidak muncul di daftar yang disimpan sebagai state. Saat "Hapus item pertama" diklik, item hilang di daftar benar tetapi tetap tampil di daftar salah. Daftar salah baru kembali sinkron setelah filter diklik ulang. Penyebabnya, ada dua sumber kebenaran (`item` dan `tampilSalah`), dan setiap handler harus ingat memperbarui keduanya. Satu yang lupa membuat data basi. Perbaikannya, hitung saja saat render.
+
+### Soal 3: judul dinamis
+
+`useEffect(() => { document.title = ... }, [jurnal.length])` menyinkronkan judul tab dengan jumlah jurnal. Saat array dependency saya ubah menjadi `[]`, ESLint menegur `React Hook useEffect has a missing dependency: 'jurnal.length'`, dan judul tab hanya diatur sekali setelah render pertama. Setelah jurnal ditambah atau dihapus, judulnya tidak ikut berubah. Array dependency menentukan kapan efek dijalankan ulang, dan semua nilai yang dipakai di dalam efek harus tercantum.
+
+### Soal 4: pintasan "/" dan cleanup
+
+`PencarianJurnal` memasang pendengar `keydown` di `window` dan melepasnya lewat fungsi cleanup. Saat cleanup saya hapus dan `console.log` ditambahkan di `tekanTombol`, menekan "/" sekali membuat handler berjalan dua kali, karena ada dua pendengar yang tidak pernah dilepas (efek dipasang dua kali oleh StrictMode, dan tidak ada yang membersihkan). Setelah cleanup dikembalikan, handler hanya berjalan sekali.
+
+### Soal 5: StrictMode
+
+Efek dengan `console.log("pasang")` dan cleanup `console.log("lepas")` menampilkan urutan `pasang`, `lepas`, `pasang` di development. React sengaja memasang, melepas, lalu memasang lagi untuk memeriksa apakah cleanup benar-benar membatalkan apa yang dipasang efek. Efek yang benar aman dipasang berkali-kali. Di produksi hanya `pasang` sekali.
+
+### Soal 6 dan 7: useLocalStorage dan data rusak
+
+`useLocalStorage<T>(kunci, nilaiAwal, valid)` membaca localStorage sekali lewat inisialisasi malas, memeriksa bentuk datanya dengan type guard, dan menulis kembali lewat efek setiap nilai berubah. Jurnal yang ditambahkan tetap ada setelah halaman di-reload, dan terlihat di DevTools, Application, Local Storage, kunci `jurnal-magang-v1`.
+
+Saya merusak isi `jurnal-magang-v1` dengan dua cara:
+
+| Isi localStorage | Dengan type guard | Dengan `as` (guard dihapus) |
+|---|---|---|
+| Teks sembarang, bukan JSON | Aplikasi jalan dengan data awal (`JSON.parse` gagal dan ditangkap `catch`) | Sama, karena `JSON.parse` ada di dalam `try` |
+| `{"a":1}` (JSON valid, bentuk salah) | Aplikasi jalan dengan data awal | Crash: `TypeError: jurnal.filter is not a function`, halaman kosong |
+
+`as` hanya mengaku bahwa tipenya benar tanpa memeriksa. Data dari localStorage adalah input tidak tepercaya: pengguna bisa mengeditnya, atau isinya dari versi aplikasi yang lama. Interface TypeScript lenyap saat program berjalan (type erasure), jadi bentuk data harus diperiksa saat runtime. Guard saya juga memeriksa `pesertaId`, karena `App` memakainya untuk memfilter.
+
+### Soal 8: usePenundaan
+
+`usePenundaan(nilai, 300)` mengembalikan nilai yang baru berubah 300 ms setelah nilai berhenti berubah. Cleanup `clearTimeout` membatalkan pengatur waktu lama setiap kali nilai berubah lagi. Di halaman latihan, kata kunci asli berubah di setiap ketikan, sedangkan yang tertunda tertinggal sampai pengetikan berhenti. Pencarian di `App` memakai nilai yang tertunda ini.
+
+### Soal 9: efek, event handler, atau data turunan
+
+| Kasus | Jenis | Alasan |
+|---|---|---|
+| a. Menghitung jumlah jurnal belum direview | Data turunan | Bisa dihitung dari `jurnal` saat render, tidak perlu state |
+| b. Mengosongkan form setelah berhasil disimpan | Event handler | Terjadi karena pengguna menekan Simpan, jadi `setNilai(NILAI_AWAL)` ditaruh di handler submit |
+| c. Menyimpan jurnal ke localStorage setiap berubah | Efek | Menyinkronkan state dengan sistem di luar React (penyimpanan browser) |
+| d. Mengatur judul tab sesuai jumlah jurnal | Efek | `document.title` ada di luar React |
+| e. Menampilkan pesan "Berhasil disimpan" setelah Simpan | Event handler | Respons langsung terhadap aksi pengguna |
+| f. Mengurutkan daftar dari terbaru | Data turunan | Hasil hitungan dari data yang ada, dilakukan pada salinan saat render |

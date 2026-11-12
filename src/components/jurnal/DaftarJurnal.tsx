@@ -9,12 +9,19 @@ interface DaftarJurnalProps {
   variasi?: "normal" | "padat";
   onHapus?: (id: number) => void;
   onUbahStatus?: (id: number, status: StatusReview) => void;
+  pesanKosong?: string; // teks saat tidak ada jurnal yang ditampilkan
 }
 
-export default function DaftarJurnal({ jurnal, variasi, onHapus, onUbahStatus }: DaftarJurnalProps) {
+export default function DaftarJurnal({
+  jurnal,
+  variasi,
+  onHapus,
+  onUbahStatus,
+  pesanKosong = "Belum ada jurnal.",
+}: DaftarJurnalProps) {
   // Keadaan kosong ditangani di awal (early return)
   if (jurnal.length === 0) {
-    return <Alert tipe="info">Belum ada jurnal.</Alert>;
+    return <Alert tipe="info">{pesanKosong}</Alert>;
   }
 
   // Dari yang terbaru, tanpa mengubah array asli (props tidak boleh diubah)

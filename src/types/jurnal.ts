@@ -22,3 +22,6 @@ export interface Jurnal {
 
 // Data yang diisi pengguna di form tambah jurnal; sisanya (id, status, dst) diisi sistem
 export type JurnalBaru = Pick<Jurnal, "kegiatan" | "hambatan" | "linkCommit">;
+
+// Pilihan filter di daftar jurnal: semua, atau salah satu status review
+export type FilterStatus = "semua" | StatusReview;
