@@ -7,7 +7,7 @@ interface BadgeProps {
   children: ReactNode;
 }
 
-// Badge generik: tidak tahu apa-apa soal jurnal, hanya teks kecil berwarna
+// Badge generik: tidak tahu apa-apa soal data aplikasi, hanya teks kecil berwarna
 export default function Badge({ variasi = "netral", children }: BadgeProps) {
   return <span className={cx(styles.badge, styles[variasi])}>{children}</span>;
 }

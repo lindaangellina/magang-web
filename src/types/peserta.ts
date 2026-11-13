@@ -8,3 +8,6 @@ export interface Peserta {
   status: "aktif" | "lulus" | "berhenti";
   role: "peserta" | "mentor";
 }
+
+// Peran pengguna di aplikasi: dipakai untuk saklar Peserta/Mentor
+export type Peran = Peserta["role"];

@@ -1,4 +1,4 @@
-import type { Jurnal } from "../types/jurnal";
+import type { Jurnal, UrutanJurnal } from "../types/jurnal";
 
 export interface RingkasanStatus {
   total: number;
@@ -15,9 +15,12 @@ export function hitungRingkasan(jurnal: readonly Jurnal[]): RingkasanStatus {
   };
 }
 
-// sort mengubah array, jadi yang diurutkan adalah SALINANNYA; array asli tidak berubah
-export function urutkanTerbaru(jurnal: readonly Jurnal[]): Jurnal[] {
+// sort mengubah array, jadi yang diurutkan adalah SALINANNYA; array asli tidak berubah.
+// id dipakai sebagai pembeda jika waktunya sama persis, supaya urutannya selalu pasti.
+export function urutkanJurnal(jurnal: readonly Jurnal[], urutan: UrutanJurnal): Jurnal[] {
+  const arah = urutan === "terbaru" ? -1 : 1;
   return [...jurnal].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    (a, b) =>
+      arah * (new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()) || arah * (a.id - b.id),
   );
 }

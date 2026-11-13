@@ -1,14 +1,13 @@
-import type { Jurnal, StatusReview } from "../../types/jurnal";
-import { urutkanTerbaru } from "../../utils/jurnal";
+import type { Jurnal, ReviewJurnal } from "../../types/jurnal";
 import Alert from "../ui/Alert";
 import JurnalCard from "./JurnalCard";
 import styles from "./DaftarJurnal.module.css";
 
 interface DaftarJurnalProps {
-  jurnal: readonly Jurnal[]; // readonly: komponen ini hanya membaca, jurnal.push(...) ditolak TypeScript
+  jurnal: readonly Jurnal[]; // readonly: komponen ini hanya membaca; urutannya ditentukan pemanggil
   variasi?: "normal" | "padat";
   onHapus?: (id: number) => void;
-  onUbahStatus?: (id: number, status: StatusReview) => void;
+  onReview?: (id: number, review: ReviewJurnal) => void;
   pesanKosong?: string; // teks saat tidak ada jurnal yang ditampilkan
 }
 
@@ -16,7 +15,7 @@ export default function DaftarJurnal({
   jurnal,
   variasi,
   onHapus,
-  onUbahStatus,
+  onReview,
   pesanKosong = "Belum ada jurnal.",
 }: DaftarJurnalProps) {
   // Keadaan kosong ditangani di awal (early return)
@@ -24,15 +23,12 @@ export default function DaftarJurnal({
     return <Alert tipe="info">{pesanKosong}</Alert>;
   }
 
-  // Dari yang terbaru, tanpa mengubah array asli (props tidak boleh diubah)
-  const terurut = urutkanTerbaru(jurnal);
-
   return (
     <ul className={styles.daftar}>
-      {terurut.map((j) => (
-        // key = id data (bukan indeks): state "terbuka" tiap kartu tidak tertukar saat ada yang dihapus
+      {jurnal.map((j) => (
+        // key = id data (bukan indeks): state tiap kartu (detail, konfirmasi, panel) tidak tertukar saat daftar berubah
         <li key={j.id}>
-          <JurnalCard jurnal={j} variasi={variasi} onHapus={onHapus} onUbahStatus={onUbahStatus} />
+          <JurnalCard jurnal={j} variasi={variasi} onHapus={onHapus} onReview={onReview} />
         </li>
       ))}
     </ul>

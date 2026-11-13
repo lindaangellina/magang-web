@@ -1,4 +1,4 @@
-/* Gaya bersama untuk form (FormJurnal, FormProfil) */
+/* Gaya bersama untuk semua form (label, kolom isian, pesan error) */
 .form {
   display: grid;
   gap: 0.75rem;

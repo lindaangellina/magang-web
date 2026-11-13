@@ -1,9 +1,10 @@
 import { useId, useState } from "react";
-import type { Jurnal, StatusReview } from "../../types/jurnal";
+import type { Jurnal, ReviewJurnal } from "../../types/jurnal";
 import { cx } from "../../utils/cx";
 import { formatTanggal } from "../../utils/format";
 import Button from "../ui/Button";
 import DetailLampiran from "./DetailLampiran";
+import PanelReview from "./PanelReview";
 import StatusBadge from "./StatusBadge";
 import styles from "./JurnalCard.module.css";
 
@@ -11,22 +12,27 @@ interface JurnalCardProps {
   jurnal: Jurnal;
   variasi?: "normal" | "padat"; // padat: hanya tanggal, status, dan kegiatan
   onHapus?: (id: number) => void; // opsional: tombol hanya muncul jika fungsinya diberikan
-  onUbahStatus?: (id: number, status: StatusReview) => void; // opsional: sama, kartu hanya "memberi kabar" ke induk
+  onReview?: (id: number, review: ReviewJurnal) => void; // hanya diberikan saat mode mentor
 }
 
-export default function JurnalCard({ jurnal, variasi = "normal", onHapus, onUbahStatus }: JurnalCardProps) {
-  // State milik kartu ini saja: setiap JurnalCard punya "terbuka" sendiri
-  const [terbuka, setTerbuka] = useState(false);
+export default function JurnalCard({ jurnal, variasi = "normal", onHapus, onReview }: JurnalCardProps) {
+  // State LOKAL: hanya relevan untuk kartu ini, jadi tidak perlu diangkat ke App
+  const [terbuka, setTerbuka] = useState(false); // detail (hambatan, lampiran)
+  const [konfirmasiHapus, setKonfirmasiHapus] = useState(false); // konfirmasi hapus dua langkah
+  const [panelReviewTerbuka, setPanelReviewTerbuka] = useState(false);
   const idDetail = useId();
+  const idPanel = useId();
 
   const padat = variasi === "padat";
   // Field dari API bisa undefined atau null; jadikan array kosong supaya aman dipakai
   const lampiran = jurnal.lampiran ?? [];
   // Data turunan (bukan state): tombol detail hanya perlu ada kalau ada yang bisa ditampilkan
-  const adaDetail = Boolean(jurnal.hambatan) || Boolean(jurnal.catatanMentor) || lampiran.length > 0;
-  // Data turunan lagi: status tujuan dan teks tombol dihitung dari props, tidak disimpan sebagai state
-  const statusBerikut: StatusReview = jurnal.statusReview === "sudah" ? "belum" : "sudah";
-  const labelStatus = statusBerikut === "sudah" ? "Tandai sudah direview" : "Kembalikan ke belum";
+  const adaDetail = Boolean(jurnal.hambatan) || lampiran.length > 0;
+
+  function simpanReview(review: ReviewJurnal) {
+    onReview?.(jurnal.id, review);
+    setPanelReviewTerbuka(false);
+  }
 
   return (
     <article className={cx(styles.card, padat && styles.padat)}>
@@ -40,6 +46,13 @@ export default function JurnalCard({ jurnal, variasi = "normal", onHapus, onUbah
 
       {!padat && (
         <>
+          {/* Hasil review selalu terlihat. null, undefined, dan string kosong tidak menampilkan apa-apa */}
+          {jurnal.catatanMentor && (
+            <p className={styles.catatan}>
+              <span className={styles.label}>Catatan mentor:</span> {jurnal.catatanMentor}
+            </p>
+          )}
+
           {adaDetail && (
             <Button
               variant="secondary"
@@ -54,15 +67,9 @@ export default function JurnalCard({ jurnal, variasi = "normal", onHapus, onUbah
 
           {adaDetail && terbuka && (
             <div id={idDetail} className={styles.detail}>
-              {/* null, undefined, dan string kosong tidak menampilkan apa-apa */}
               {jurnal.hambatan && (
                 <p className={styles.baris}>
                   <span className={styles.label}>Hambatan:</span> {jurnal.hambatan}
-                </p>
-              )}
-              {jurnal.catatanMentor && (
-                <p className={styles.baris}>
-                  <span className={styles.label}>Catatan mentor:</span> {jurnal.catatanMentor}
                 </p>
               )}
               {lampiran.length > 0 && (
@@ -81,30 +88,49 @@ export default function JurnalCard({ jurnal, variasi = "normal", onHapus, onUbah
               </a>
             </div>
           )}
-          {(onHapus || onUbahStatus) && (
+
+          {(onHapus || onReview) && (
             <div className={styles.aksi}>
-              {/* Dibungkus fungsi: dijalankan saat diklik, bukan saat render */}
-              {onUbahStatus && (
+              {onReview && (
                 <Button
                   variant="secondary"
                   ukuran="sm"
-                  aria-label={`${labelStatus}: ${jurnal.kegiatan}`}
-                  onClick={() => onUbahStatus(jurnal.id, statusBerikut)}
+                  aria-expanded={panelReviewTerbuka}
+                  aria-controls={idPanel}
+                  aria-label={`${panelReviewTerbuka ? "Tutup review" : "Review"}: ${jurnal.kegiatan}`}
+                  onClick={() => setPanelReviewTerbuka((p) => !p)}
                 >
-                  {labelStatus}
+                  {panelReviewTerbuka ? "Tutup review" : "Review"}
                 </Button>
               )}
-              {onHapus && (
-                <Button
-                  variant="danger"
-                  ukuran="sm"
-                  aria-label={`Hapus: ${jurnal.kegiatan}`}
-                  onClick={() => onHapus(jurnal.id)}
-                >
-                  Hapus
-                </Button>
-              )}
+              {onHapus &&
+                (konfirmasiHapus ? (
+                  <div className={styles.konfirmasi} role="group" aria-label={`Konfirmasi hapus: ${jurnal.kegiatan}`}>
+                    <span>Yakin?</span>
+                    {/* Dibungkus fungsi: dijalankan saat diklik, bukan saat render */}
+                    <Button variant="danger" ukuran="sm" onClick={() => onHapus(jurnal.id)}>
+                      Ya
+                    </Button>
+                    {/* Fokus awal di Batal: pilihan yang aman jika pengguna menekan Enter terburu-buru */}
+                    <Button variant="secondary" ukuran="sm" autoFocus onClick={() => setKonfirmasiHapus(false)}>
+                      Batal
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    variant="danger"
+                    ukuran="sm"
+                    aria-label={`Hapus: ${jurnal.kegiatan}`}
+                    onClick={() => setKonfirmasiHapus(true)}
+                  >
+                    Hapus
+                  </Button>
+                ))}
             </div>
+          )}
+
+          {onReview && panelReviewTerbuka && (
+            <PanelReview id={idPanel} jurnal={jurnal} onSimpan={simpanReview} onBatal={() => setPanelReviewTerbuka(false)} />
           )}
         </>
       )}

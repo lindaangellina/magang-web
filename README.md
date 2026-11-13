@@ -1,8 +1,6 @@
 # magang-web
 
-Halaman daftar jurnal harian peserta magang, dibangun dengan React + TypeScript + Vite. Proyek ini adalah pembuka Fase 3 dan dikerjakan terpisah dari backend (`api-magang`). Di Minggu 17 datanya masih tiruan (statis) dengan bentuk yang sama dengan response API; state dan pemanggilan API menyusul di Minggu 18 dan 19.
-
-Halaman menampilkan: header dengan nama peserta, ringkasan (total, sudah direview, belum), dan daftar jurnal dari yang terbaru. Setiap jurnal menampilkan tanggal, status review, kegiatan, hambatan, catatan mentor, lampiran, dan tautan commit; field yang kosong atau `null` tidak ditampilkan.
+Aplikasi **Jurnal Interaktif** untuk peserta magang, dibangun dengan React + TypeScript + Vite. Ini proyek Fase 3 yang dikerjakan terpisah dari backend (`api-magang`). Di Minggu 18 aplikasi belum memakai API: semua data disimpan di state React dan `localStorage`. Pemanggilan API menyusul di Minggu 19.
 
 ## Menjalankan
 
@@ -18,39 +16,52 @@ npm run build     # periksa tipe (tsc) lalu bangun versi produksi ke dist/
 npm run preview   # jalankan hasil build di http://localhost:4173
 ```
 
-Galeri semua komponen UI (halaman sementara) dibuka di `http://localhost:5173/?halaman=galeri`.
+Catatan versi: TypeScript dipasang di 5.9 (`typescript@~5.9.0`) karena TypeScript 7 bentrok dengan `typescript-eslint`.
 
-Catatan versi: template Vite terbaru memasang TypeScript 7, yang bentrok dengan `typescript-eslint` (butuh di bawah 6.1). Solusinya TypeScript diturunkan ke 5.9 (`npm install -D typescript@~5.9.0`).
+Halaman latihan harian dan galeri komponen dibuka lewat `?halaman=galeri`, `latihan`, `latihan-selasa`, `latihan-rabu`, atau `latihan-kamis`.
+
+## Fitur
+
+1. **Tambah jurnal** lewat formulir terkontrol dengan validasi di sisi klien (kegiatan 10 sampai 2000 karakter, link harus http/https). Hambatan dan link yang kosong disimpan sebagai `null`.
+2. **Hapus jurnal dengan konfirmasi dua langkah**: tombol "Hapus" berubah menjadi "Yakin? [Ya] [Batal]". Status konfirmasi adalah state lokal di `JurnalCard`.
+3. **Saklar peran Peserta/Mentor** (state di `App`). Hanya mode Mentor yang menampilkan tombol "Review", yang membuka panel catatan. Aturannya sama dengan `ReviewJurnalDto` di API: status "sudah" **wajib** disertai catatan minimal 5 karakter; mentor boleh mengembalikan ke "belum" dengan catatan opsional. Catatan tampil di kartu.
+4. **Filter status** dan **pencarian** dengan debounce 300 ms.
+5. **Pintasan `/`** memindahkan fokus ke kolom pencarian (listener dibersihkan saat komponen dilepas).
+6. **Ringkasan** (total, sudah, belum) dihitung dari data, tidak disimpan.
+7. **Persistensi** lewat hook `useLocalStorage` dengan type guard, sehingga data rusak di localStorage tidak membuat aplikasi crash.
+8. **Judul tab** menampilkan jumlah jurnal yang belum direview.
+9. **Dua keadaan kosong** yang berbeda: belum ada jurnal sama sekali, dan tidak ada hasil untuk filter/pencarian.
+
+Bonus: draf formulir tersimpan di localStorage (`draf-jurnal-v1`) dan hilang setelah jurnal disimpan; pengurutan terbaru/terlama.
 
 ## Struktur Folder
 
 ```
 src/
 ├── components/
-│   ├── ui/          Button, Alert, Kartu, Badge (generik, tanpa tahu soal jurnal)
-│   ├── jurnal/      JurnalCard, DaftarJurnal, StatusBadge, RingkasanJurnal, DetailLampiran
-│   └── layout/      Header
-├── data/            data tiruan: jurnal.ts, pesertaTiruan.ts (sementara)
-├── pages/           GaleriKomponen (halaman sementara)
+│   ├── ui/          Button, Alert, Kartu, Badge (generik, tidak tahu soal data aplikasi)
+│   ├── jurnal/      FormJurnal, DaftarJurnal, JurnalCard, PanelReview, RingkasanJurnal,
+│   │                StatusBadge, PencarianJurnal, FilterJurnal, UrutanJurnal, DetailLampiran
+│   ├── layout/      Header, SaklarPeran
+│   └── profil/      FormProfil (latihan Rabu)
+├── hooks/           useLocalStorage, usePenundaan
+├── data/            data tiruan awal
 ├── types/           peserta.ts, jurnal.ts
-├── utils/           cx.ts, format.ts, jurnal.ts (hitungRingkasan, urutkanTerbaru)
-├── App.tsx          hanya menyusun halaman
-├── App.module.css
-├── main.tsx
-└── index.css        variabel desain (design token)
+├── utils/           cx, format, validasiJurnal, guard, jurnal, daftar
+├── App.tsx          pemilik state, menyusun halaman
+└── main.tsx
 ```
 
-Setiap komponen punya `.module.css` sendiri (CSS Modules) dan memakai variabel desain dari `index.css`.
+## Keputusan Desain
 
-## Tiga Keputusan Desain
+1. **State dimiliki oleh satu komponen paling atas yang membutuhkannya.** Daftar jurnal, filter, kata kunci, urutan, dan peran ada di `App` (dipakai banyak komponen). State yang hanya dipakai satu kartu (detail terbuka, konfirmasi hapus, panel review terbuka) tinggal di `JurnalCard`, dan isi catatan review tinggal di `PanelReview`.
+2. **Data turunan tidak disimpan.** Jurnal tampil, ringkasan, jumlah belum direview, dan urutan dihitung saat render dari state. Hanya data sumber yang jadi state, sehingga tidak ada dua sumber kebenaran yang bisa berbeda.
+3. **Aturan bisnis ada di fungsi murni.** `validasiFormJurnal`, `validasiReview`, dan `urutkanJurnal` ada di `utils`, tidak bergantung pada React, dan komponen hanya memanggilnya.
+4. **Data dari luar dianggap tidak tepercaya.** localStorage dibaca lewat `JSON.parse` ke `unknown`, lalu diperiksa type guard (`adalahDaftarJurnal`, `adalahFormJurnalState`); bentuk salah memakai nilai awal. Tidak ada `any` dan tidak ada `as`.
+5. **Komponen ui generik.** `Button`, `Alert`, `Badge`, `Kartu` tidak mengenal istilah jurnal, jadi bisa dipakai ulang.
+6. **Aksesibilitas:** setiap kolom punya `label`, error memakai `role="alert"` dan `aria-describedby`, tombol buka/tutup memakai `aria-expanded` dan `aria-controls`, saklar peran memakai `aria-pressed`, dan fokus pertama pindah ke kolom yang error.
 
-1. **Komponen `ui` dipisah dari komponen `jurnal`.** `Button`, `Alert`, `Badge`, dan `Kartu` tidak mengenal istilah jurnal, jadi bisa dipakai ulang di halaman lain (peserta, mentor). Komponen `jurnal` yang menyusun komponen `ui`: contohnya `StatusBadge` hanya menerjemahkan status review menjadi `Badge` berwarna, sehingga warna tidak ditulis dua kali.
-2. **Turunan data dihitung di fungsi murni, bukan ditulis manual atau disimpan.** `hitungRingkasan` menghitung total, sudah, dan belum langsung dari array setiap render, sehingga angkanya tidak mungkin berbeda dari datanya. `urutkanTerbaru` mengurutkan salinan (`[...jurnal].sort(...)`) karena `sort` mengubah array dan props tidak boleh diubah. Fungsi murni di `utils` juga lebih mudah diuji nanti.
-3. **Field opsional dari API ditangani di titik tampilnya.** Field bisa `undefined` atau `null`, jadi `JurnalCard` memakai pemeriksaan `&&` untuk hambatan, catatan mentor, dan tautan commit, serta `lampiran ?? []` untuk lampiran. Hasilnya teks "null" atau elemen kosong tidak pernah muncul. Daftar lampiran memakai elemen bawaan `<details>`, jadi bisa dibuka dengan keyboard tanpa `useState`, yang baru dipelajari Minggu 18.
-
-Bonus yang dikerjakan: komponen `DetailLampiran`, varian tampilan padat untuk `JurnalCard` (`variasi="padat"`, union string literal), dan halaman galeri komponen tetap dipertahankan.
-
-Catatan: sebagian komponen latihan Selasa sampai Kamis (misalnya `PesertaCard`, `NomorUrut`, `DaftarPeserta`, `HasilJurnal`) tidak dipakai di halaman akhir sehingga dihapus pada Jumat; kodenya tetap ada di riwayat commit. Tipe `Jurnal` mengikuti spesifikasi Jumat (`statusReview` bernilai `belum` atau `sudah`), dan di Minggu 19 akan diganti tipe yang dihasilkan dari dokumen OpenAPI.
+Keterbatasan: validasi di klien hanya untuk kenyamanan; keamanan sebenarnya tetap harus ditegakkan di server (API). Peran Mentor di sini hanya simulasi tampilan, bukan otorisasi sungguhan.
 
 ## Catatan Latihan Harian (Minggu 17)
 
@@ -443,3 +454,18 @@ Saya merusak isi `jurnal-magang-v1` dengan dua cara:
 | d. Mengatur judul tab sesuai jumlah jurnal | Efek | `document.title` ada di luar React |
 | e. Menampilkan pesan "Berhasil disimpan" setelah Simpan | Event handler | Respons langsung terhadap aksi pengguna |
 | f. Mengurutkan daftar dari terbaru | Data turunan | Hasil hitungan dari data yang ada, dilakukan pada salinan saat render |
+
+
+## Catatan Minggu 18 Jumat: mini project dan "Coba Rusakkan Formulirku"
+
+### Cara kerja review mentor
+`PanelReview` memegang isi catatan sebagai state lokal, memanggil `validasiReview(status, catatan)`, lalu memberi kabar ke atas lewat `onSimpan`. `App.reviewJurnal` mengganti status dan catatan dalam satu `map` dengan objek baru (spread). Catatan kosong disimpan `null`.
+
+### Pertanyaan laporan #12: localStorage berisi `{"a":1}`
+Aplikasi tetap berjalan dan menampilkan data awal. `JSON.parse` berhasil (itu JSON valid), tetapi hasilnya bertipe `unknown`, lalu `adalahDaftarJurnal` memeriksa bahwa nilainya array dan setiap isinya punya bentuk `Jurnal`. `{"a":1}` bukan array, jadi guard mengembalikan `false` dan hook memakai nilai awal. Tanpa guard, nilai itu langsung dipakai sebagai daftar dan `jurnal.filter` akan crash ("jurnal.filter is not a function"). Crash itu sudah pernah kualami di latihan Kamis.
+
+### Pertanyaan laporan #6: `<script>alert(1)</script>` diterima
+Input itu tidak berbahaya karena React meng-escape semua nilai yang ditulis di `{}`: teks tersebut ditampilkan sebagai karakter biasa, bukan dijalankan sebagai HTML. Lapisan yang bertanggung jawab atas perlindungan XSS adalah lapisan **output/render** (React yang mengubah `<` menjadi teks), bukan validasi input. Jadi input itu sah diterima, dan validasi klien tidak dipakai sebagai pertahanan XSS. Bahayanya baru muncul jika memakai `dangerouslySetInnerHTML` atau menaruh URL tak tepercaya di `href` (karena itu link divalidasi hanya http/https, menolak `javascript:`). Server tetap wajib memvalidasi dan meng-encode saat output di konteks lain.
+
+### Hasil sesi "Coba Rusakkan Formulirku"
+Tabel 12 input untuk repo teman dan hasil perbaikan Issue masuk ditulis di bagian ini setelah sesinya dijalankan.

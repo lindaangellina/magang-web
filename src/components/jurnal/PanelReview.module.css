@@ -1,0 +1,13 @@
+.panel {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--warna-garis);
+}
+
+.petunjuk {
+  margin: 0;
+  color: var(--warna-netral);
+  font-size: 0.8rem;
+}

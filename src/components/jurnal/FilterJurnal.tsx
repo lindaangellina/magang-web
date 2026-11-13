@@ -2,12 +2,12 @@ import type { FilterStatus } from "../../types/jurnal";
 import { adalahFilterStatus } from "../../utils/guard";
 import styles from "../ui/Form.module.css";
 
-interface FilterStatusJurnalProps {
+interface FilterJurnalProps {
   nilai: FilterStatus;
   onUbah: (nilai: FilterStatus) => void;
 }
 
-export default function FilterStatusJurnal({ nilai, onUbah }: FilterStatusJurnalProps) {
+export default function FilterJurnal({ nilai, onUbah }: FilterJurnalProps) {
   return (
     <div className={styles.kolom}>
       <label className={styles.label} htmlFor="filter-status">

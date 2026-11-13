@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import type { ChangeEventHandler, FormEventHandler } from "react";
 import type { JurnalBaru } from "../../types/jurnal";
+import { useLocalStorage } from "../../hooks/useLocalStorage";
+import { adalahFormJurnalState } from "../../utils/guard";
 import { validasiFormJurnal } from "../../utils/validasiJurnal";
 import type { FormJurnalErrors, FormJurnalState } from "../../utils/validasiJurnal";
 import Button from "../ui/Button";
@@ -14,7 +16,8 @@ interface FormJurnalProps {
 const NILAI_AWAL: FormJurnalState = { kegiatan: "", hambatan: "", linkCommit: "" };
 
 export default function FormJurnal({ onTambah }: FormJurnalProps) {
-  const [nilai, setNilai] = useState<FormJurnalState>(NILAI_AWAL);
+  // Bonus: draf form tersimpan di localStorage, jadi tidak hilang saat halaman di-reload
+  const [nilai, setNilai] = useLocalStorage<FormJurnalState>("draf-jurnal-v1", NILAI_AWAL, adalahFormJurnalState);
   const [errors, setErrors] = useState<FormJurnalErrors>({});
 
   // Ref untuk memindahkan fokus ke kolom pertama yang salah (Soal 4)
@@ -47,7 +50,7 @@ export default function FormJurnal({ onTambah }: FormJurnalProps) {
       hambatan: nilai.hambatan.trim() || null, // kolom opsional kosong menjadi null (seperti API)
       linkCommit: nilai.linkCommit.trim() || null,
     });
-    setNilai(NILAI_AWAL); // kosongkan form
+    setNilai(NILAI_AWAL); // kosongkan form (sekaligus mengosongkan draf)
   };
 
   return (

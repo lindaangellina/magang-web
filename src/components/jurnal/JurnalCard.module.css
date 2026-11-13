@@ -62,3 +62,16 @@
 .detail {
   margin-top: 0.5rem;
 }
+
+.catatan {
+  margin: 0.4rem 0;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--jari-jari);
+  background: var(--warna-utama-muda);
+}
+
+.konfirmasi {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}

@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 
 // Custom hook generik: dipakai seperti useState, tetapi nilainya disimpan di localStorage.
 export function useLocalStorage<T>(
   kunci: string,
   nilaiAwal: T,
   valid: (data: unknown) => data is T, // type guard: pemeriksa bentuk data
-) {
+): [T, Dispatch<SetStateAction<T>>] {
   const [nilai, setNilai] = useState<T>(() => {
     // inisialisasi malas: fungsi ini hanya dijalankan SEKALI (render pertama)
     try {
@@ -28,5 +29,5 @@ export function useLocalStorage<T>(
     }
   }, [kunci, nilai]);
 
-  return [nilai, setNilai] as const; // tuple bertipe tepat, seperti useState
+  return [nilai, setNilai]; // tuple bertipe tepat, seperti useState
 }
