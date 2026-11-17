@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { ChangeEventHandler, FormEventHandler } from "react";
-import type { JurnalBaru } from "../../types/jurnal";
+import type { JurnalBaru } from "../../api/types";
 import { useLocalStorage } from "../../hooks/useLocalStorage";
 import { adalahFormJurnalState } from "../../utils/guard";
 import { validasiFormJurnal } from "../../utils/validasiJurnal";
@@ -47,8 +47,9 @@ export default function FormJurnal({ onTambah }: FormJurnalProps) {
 
     onTambah({
       kegiatan: nilai.kegiatan.trim(),
-      hambatan: nilai.hambatan.trim() || null, // kolom opsional kosong menjadi null (seperti API)
-      linkCommit: nilai.linkCommit.trim() || null,
+      // Kolom opsional yang kosong tidak dikirim sama sekali (undefined): sesuai CreateJurnalRequest di dokumen API
+      hambatan: nilai.hambatan.trim() || undefined,
+      linkCommit: nilai.linkCommit.trim() || undefined,
     });
     setNilai(NILAI_AWAL); // kosongkan form (sekaligus mengosongkan draf)
   };

@@ -1,5 +1,5 @@
 import Badge from "../ui/Badge";
-import type { StatusReview } from "../../types/jurnal";
+import type { StatusReview } from "../../api/types";
 
 const label: Record<StatusReview, string> = {
   belum: "Belum direview",

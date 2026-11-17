@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Button from "../components/ui/Button";
 import { jurnalTiruan } from "../data/jurnal";
-import type { Jurnal, StatusReview } from "../types/jurnal";
+import type { Jurnal, StatusReview } from "../api/types";
 
 // SOAL 7 — Lima pemanggilan useState dengan tipe yang tepat.
 // Catatan: useState([]) tanpa generic diinfer sebagai never[] (array yang tidak boleh berisi apa pun),

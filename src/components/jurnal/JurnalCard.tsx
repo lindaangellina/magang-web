@@ -1,5 +1,6 @@
 import { useId, useState } from "react";
-import type { Jurnal, ReviewJurnal } from "../../types/jurnal";
+import type { Jurnal } from "../../api/types";
+import type { ReviewJurnal } from "../../types/jurnal";
 import { cx } from "../../utils/cx";
 import { formatTanggal } from "../../utils/format";
 import Button from "../ui/Button";

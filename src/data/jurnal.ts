@@ -1,4 +1,4 @@
-import type { Jurnal } from "../types/jurnal";
+import type { Jurnal } from "../api/types";
 
 // Data tiruan (hapus di Minggu 19 saat memakai API sungguhan).
 // Sengaja tidak berurutan tanggal dan bervariasi: hambatan null/berisi, linkCommit null/berisi,

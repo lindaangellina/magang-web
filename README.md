@@ -533,3 +533,43 @@ Gejalanya menyesatkan: pesan 422 menyalahkan isi form, padahal penyebabnya heade
 
 ### Soal 8: proxy Vite dan nginx
 Kode frontend hanya memanggil alamat relatif seperti `/api/v1/...`, tidak peduli siapa yang meneruskannya. Di development, Vite menjalankan peran proxy: ia meneruskan `/api` ke `localhost:3000`. Di produksi (Minggu 24), nginx menjalankan peran yang sama dengan meneruskan `/api` ke container API. Karena aplikasi selalu hanya "bicara" ke origin-nya sendiri, CORS tidak terlibat di kedua lingkungan, dan tidak ada baris kode frontend yang berubah saat berpindah; cukup konfigurasi proxy-nya yang berbeda.
+
+## Catatan Minggu 19 Selasa: tipe TypeScript dari dokumen OpenAPI
+
+### Soal 1: menghasilkan tipe
+`openapi-typescript` (7.13.0) dipasang sebagai devDependency, dan script `api:types` membaca `http://localhost:3000/api/docs.json` lalu menulis `src/api/schema.d.ts`. File hasilnya **1610 baris** dan tidak boleh diedit tangan (dikomit supaya `npm run build` tidak butuh backend). Isinya:
+- `paths`: setiap endpoint beserta parameter, body, dan response-nya
+- `components["schemas"]`: 24 schema, antara lain `Peserta`, `Jurnal`, `Lampiran`, `CreateJurnalRequest`, `ReviewJurnalRequest`, `PaginationMeta`, `FieldError`, `ErrorResponse`, `LoginResponse`, `JurnalListResponse`
+- `components["responses"]` (Unauthorized, Forbidden, NotFound, ValidationError, dst.), `parameters`, dan `headers`
+
+### Soal 2: kelonggaran tipe
+Versi pertama (sebelum dokumen diperbaiki) membuat hampir semua properti opsional, misalnya `readonly id?: number` dan `kegiatan?: string`:
+- `Peserta`: `id`, `nama`, `sekolah`, `email`, `fase`, `status`, `role`, `createdAt`, `updatedAt` (hanya `telepon` yang memang boleh kosong)
+- `Jurnal`: `id`, `pesertaId`, `kegiatan`, `statusReview`, `createdAt`
+- pembungkus response: `sukses`, `pesan`, `data` (dan `meta` pada daftar)
+- `PaginationMeta`: keenam propertinya; `FieldError`: `field` dan `pesan`; `ErrorResponse`: `sukses` dan `requestId`
+
+Penyebabnya, OpenAPI menganggap properti wajib hanya jika disebut di `required`, dan schema di Minggu 16 belum mencantumkannya. Sebagai pembanding, `ErrorResponse.error.kode` dan `pesan` sudah wajib sejak awal karena objek itu memang punya `required: ["kode", "pesan"]`. Properti `readOnly` di dokumen (id, createdAt, dst.) muncul sebagai `readonly` di TypeScript.
+
+### Soal 3: memperbaiki dokumen
+Di `api-magang` (`src/docs/helpers.ts` dan `components.ts`) ditambahkan `required` pada pembungkus response, `Peserta`, `Jurnal`, `PaginationMeta`, `FieldError`, `ErrorResponse`, `JurnalSayaResponse`, dan isi `data` untuk `LoginResponse`, `RefreshResponse`, `StatsResponse`, serta `PesertaJurnalResponse`. Yang dimasukkan hanya kolom yang **selalu** ada di response. Pada `Jurnal`, `hambatan`, `linkCommit`, `reviewerId`, `catatanMentor`, dan `lampiran` sengaja tidak wajib karena boleh null atau tidak dikirim (misalnya pada response `POST`). Sebuah test baru (`tests/unit/docs/required.test.ts`) menjaga agar kontraknya tidak longgar lagi.
+
+Hasil: `npm test` **26 suite dan 438 test lolos** (termasuk test baru `required.test.ts`; test `openapi.test.ts` sempat gagal saat `docs/openapi.json` belum diekspor ulang, lalu hijau setelah `npm run docs:export`); setelah `npm run api:types` ulang, `readonly id: number`, `kegiatan: string`, dan `statusReview: "belum" | "sudah"` tidak lagi bertanda `?`.
+
+### Soal 4: alias tipe
+`src/api/types.ts` membuat alias (`Peserta`, `Jurnal`, `Lampiran`, `StatusReview`, `JurnalBaru`, dst.) dari `components["schemas"]`. Contohnya `StatusReview = Jurnal["statusReview"]` menurunkan union dari tipe lain tanpa menulis ulang. Tipe tulisan tangan `Jurnal`, `Lampiran`, `StatusReview`, `JurnalBaru`, dan `Peserta` dihapus; di `src/types` tinggal tipe khusus tampilan (`FilterStatus`, `ReviewJurnal`, `UrutanJurnal`, `Peran`). Perubahan yang diperlukan:
+- `FormJurnal` sekarang mengirim `undefined` (bukan `null`) untuk kolom opsional yang kosong, karena `CreateJurnalRequest` mendefinisikan `hambatan?: string` tanpa `null`.
+- `App.tambahJurnal` menyimpan field yang tidak dikirim sebagai `null` (`data.hambatan ?? null`) agar bentuk jurnal tersimpan tetap sama.
+- Data tiruan peserta butuh `createdAt` karena sekarang wajib di dokumen.
+
+### Soal 5: eksperimen kontrak
+Pada cabang percobaan di `api-magang`, properti `kegiatan` pada schema `Jurnal` diganti nama menjadi `aktivitas`, lalu `npm run api:types` dan `npm run build` dijalankan: muncul 14 error kompilasi di 4 file (`src/App.tsx` 2 error, `src/components/jurnal/JurnalCard.tsx` 4 error, `src/data/jurnal.ts` 6 error, `src/latihan/ContohTipeState.tsx` 2 error). Perubahan kemudian dikembalikan dan `api:types` dijalankan ulang sampai `git status` bersih. Compiler langsung menunjukkan setiap tempat yang memakai `jurnal.kegiatan`, sehingga ketidakcocokan kontrak ditemukan saat kompilasi, bukan saat pengguna menemukan layar yang rusak.
+
+### Soal 6: skrip pemeriksa
+```json
+"api:types:check": "npm run api:types && git diff --exit-code src/api/schema.d.ts"
+```
+Skrip ini menghasilkan ulang tipe, lalu `git diff --exit-code` gagal (kode keluar 1) jika `schema.d.ts` yang dihasilkan berbeda dari yang sudah dikomit. Artinya dokumen backend berubah tetapi frontend belum memperbarui tipenya. Aku ingin memasangnya di **CI** (GitHub Actions), karena pemeriksaan itu harus dijalankan oleh semua orang dan tidak bisa dilewati; versi pre-commit bergantung pada backend yang sedang menyala di komputer lokal. Di CI, `openapi-typescript` bisa membaca `docs/openapi.json` hasil `docs:export` supaya tidak perlu menyalakan backend.
+
+### Soal 7: dokumen longgar menghasilkan tipe longgar
+Generator tipe hanya bisa menyalin apa yang tertulis di dokumen: tanpa `required`, ia tidak tahu properti mana yang selalu ada, sehingga semuanya dibuat opsional dan setiap pemakaian dipaksa memeriksa `undefined`. Tipe yang longgar membuat kompilator tidak bisa menangkap kesalahan, dan kode frontend jadi dipenuhi pemeriksaan yang sebenarnya tidak perlu. Ini persis pelajaran "tulis dokumen yang akurat" di Minggu 16: dokumen bukan sekadar bahan bacaan, tetapi kontrak yang diterjemahkan mesin menjadi tipe dan test. Tipe ini tetap hanya klaim: interface hilang saat runtime, jadi test dokumen di backend dan satu titik kepercayaan di klien API (Rabu) tetap diperlukan.

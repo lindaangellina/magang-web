@@ -1,4 +1,4 @@
-import type { Peserta } from "../types/peserta";
+import type { Peserta } from "../api/types";
 
 // SOAL 6 — Lima operasi daftar sebagai FUNGSI MURNI: array masuk tidak diubah, hasilnya array BARU.
 // Parameter bertipe readonly Peserta[] sehingga mutasi (push, splice, sort) ditolak TypeScript.

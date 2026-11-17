@@ -1,4 +1,4 @@
-import type { Jurnal } from "../../types/jurnal";
+import type { Jurnal } from "../../api/types";
 import { hitungRingkasan } from "../../utils/jurnal";
 import styles from "./RingkasanJurnal.module.css";
 

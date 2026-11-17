@@ -1,7 +1,7 @@
 import { useState } from "react";
 import Button from "../components/ui/Button";
 import { pesertaTiruan } from "../data/pesertaTiruan";
-import type { Peserta } from "../types/peserta";
+import type { Peserta } from "../api/types";
 import {
   gantiPeserta,
   hapusPeserta,
@@ -28,6 +28,7 @@ export default function DemoDaftarPeserta() {
         fase: 1,
         status: "aktif",
         role: "peserta",
+        createdAt: new Date().toISOString(), // createdAt wajib di dokumen API
       }),
     );
   }

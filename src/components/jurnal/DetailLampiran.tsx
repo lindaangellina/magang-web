@@ -1,4 +1,4 @@
-import type { Lampiran } from "../../types/jurnal";
+import type { Lampiran } from "../../api/types";
 import styles from "./DetailLampiran.module.css";
 
 interface DetailLampiranProps {

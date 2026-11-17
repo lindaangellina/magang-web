@@ -1,4 +1,5 @@
-import type { FilterStatus, Jurnal, UrutanJurnal } from "../types/jurnal";
+import type { Jurnal } from "../api/types";
+import type { FilterStatus, UrutanJurnal } from "../types/jurnal";
 import type { FormJurnalState } from "./validasiJurnal";
 
 // Type guard: memeriksa bentuk data di RUNTIME. Interface TypeScript lenyap saat program berjalan,

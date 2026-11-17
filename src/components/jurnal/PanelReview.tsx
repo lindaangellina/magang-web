@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import type { ChangeEventHandler, FormEventHandler } from "react";
-import type { Jurnal, ReviewJurnal, StatusReview } from "../../types/jurnal";
+import type { Jurnal, StatusReview } from "../../api/types";
+import type { ReviewJurnal } from "../../types/jurnal";
 import { validasiReview } from "../../utils/validasiJurnal";
 import Button from "../ui/Button";
 import formStyles from "../ui/Form.module.css";

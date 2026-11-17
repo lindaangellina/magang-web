@@ -1,4 +1,5 @@
-import type { Jurnal, UrutanJurnal } from "../types/jurnal";
+import type { Jurnal } from "../api/types";
+import type { UrutanJurnal } from "../types/jurnal";
 
 export interface RingkasanStatus {
   total: number;

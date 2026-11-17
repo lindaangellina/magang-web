@@ -18,7 +18,8 @@ import LatihanRabu from "./latihan/LatihanRabu";
 import LatihanSelasa from "./latihan/LatihanSelasa";
 import LatihanSenin from "./latihan/LatihanSenin";
 import GaleriKomponen from "./pages/GaleriKomponen";
-import type { FilterStatus, Jurnal, JurnalBaru, ReviewJurnal, UrutanJurnal as TipeUrutan } from "./types/jurnal";
+import type { Jurnal, JurnalBaru } from "./api/types";
+import type { FilterStatus, ReviewJurnal, UrutanJurnal as TipeUrutan } from "./types/jurnal";
 import type { Peran } from "./types/peserta";
 import { adalahDaftarJurnal } from "./utils/guard";
 import { urutkanJurnal } from "./utils/jurnal";
@@ -66,7 +67,9 @@ export default function App() {
       const baru: Jurnal = {
         id: Math.max(0, ...daftar.map((j) => j.id)) + 1, // sementara; nanti id dibuat oleh server
         pesertaId,
-        ...data,
+        kegiatan: data.kegiatan,
+        hambatan: data.hambatan ?? null, // field opsional yang tidak dikirim disimpan sebagai null
+        linkCommit: data.linkCommit ?? null,
         lampiran: null,
         statusReview: "belum",
         catatanMentor: null,

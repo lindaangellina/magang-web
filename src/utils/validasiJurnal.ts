@@ -1,4 +1,4 @@
-import type { StatusReview } from "../types/jurnal";
+import type { StatusReview } from "../api/types";
 
 // Validasi di klien hanya untuk kenyamanan pengguna. Server tetap penentu akhir.
 // Aturan mencerminkan CreateJurnalRequest di dokumentasi API: kegiatan 10-2000 karakter, link berupa URL.
