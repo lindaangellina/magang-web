@@ -469,3 +469,67 @@ Input itu tidak berbahaya karena React meng-escape semua nilai yang ditulis di `
 
 ### Hasil sesi "Coba Rusakkan Formulirku"
 Tabel 12 input untuk repo teman dan hasil perbaikan Issue masuk ditulis di bagian ini setelah sesinya dijalankan.
+
+## Catatan Minggu 19 Senin: menyambungkan frontend dan backend
+
+Frontend (`magang-web`, `localhost:5173`) dan backend (`api-magang`, `localhost:3000`) berjalan bersamaan di dua terminal. Backend memakai prefix `/api/v1`, jadi health check ada di `/api/v1/health`.
+
+### Soal 2: eksperimen CORS
+Origin adalah gabungan skema, host, dan port, sehingga `http://localhost:5173` dan `http://localhost:3000` adalah dua origin berbeda. Browser menerapkan same-origin policy: skrip dari satu origin tidak boleh membaca respons origin lain kecuali server tujuan mengizinkannya lewat header `Access-Control-Allow-Origin`. Konfigurasinya ada di **server** (di `api-magang`: `CORS_ORIGINS` yang dibaca middleware `cors`), tetapi yang menegakkannya adalah **browser**. `curl` dan Swagger tidak terkena karena mereka bukan skrip dari origin lain yang dijaga browser. Saat `http://localhost:5173` tidak ada di `CORS_ORIGINS`, permintaan sampai ke server tetapi browser menolak memberikan responsnya ke kode React, dan Console hanya menulis pesan error CORS yang singkat (detail ada di tab Network).
+
+Hasil percobaanku: dengan `CORS_ORIGINS` sengaja kuubah ke `http://localhost:9999`, pemanggilan langsung ke `http://localhost:3000/api/v1/health` gagal. Pesan di Console: *"Access to fetch at 'http://localhost:3000/api/v1/health' from origin 'http://localhost:5173' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource."* Di tab Network server tetap menjawab **200 OK**, tetapi respons tidak membawa `Access-Control-Allow-Origin` sehingga browser menolak memberikannya ke kode React. Setelah `CORS_ORIGINS=http://localhost:5173` dikembalikan dan backend di-restart, respons membawa `Access-Control-Allow-Origin: http://localhost:5173` dan panggilan berhasil.
+
+### Soal 3: preflight
+Permintaan lintas origin yang membawa header `Authorization` didahului permintaan `OPTIONS` (preflight). Browser menanyakan "bolehkah?" lewat `Access-Control-Request-Method` dan `Access-Control-Request-Headers: authorization`; server menjawab dengan `Access-Control-Allow-Origin`, `Access-Control-Allow-Headers`, dan `Access-Control-Allow-Credentials`. Jawaban itu dibuat middleware `cors` di Express, jadi satu panggilan tampak sebagai dua permintaan di tab Network.
+
+Hasil percobaanku (permintaan `OPTIONS` ke `/api/v1/me`, status 204 No Content):
+
+| Browser bertanya | Server menjawab |
+|---|---|
+| `Origin: http://localhost:5173` | `Access-Control-Allow-Origin: http://localhost:5173` |
+| `Access-Control-Request-Method: GET` | `Access-Control-Allow-Methods: GET,HEAD,PUT,PATCH,POST,DELETE` |
+| `Access-Control-Request-Headers: authorization` | `Access-Control-Allow-Headers: authorization` |
+| | `Access-Control-Allow-Credentials: true` |
+
+Setelah preflight lolos, barulah permintaan `GET /me` yang asli dikirim (dijawab 401 karena token palsu). Di tab Network keduanya tampil sebagai dua baris `me`.
+
+### Soal 4: proxy Vite
+`vite.config.ts` meneruskan semua permintaan `/api` ke `http://localhost:3000`. `CekServer` memanggil alamat relatif `/api/v1/health` dan berhasil tanpa `CORS_ORIGINS`, karena browser hanya melihat satu origin. Dokumentasi juga terbuka di `http://localhost:5173/api/docs/`.
+
+### Soal 5: variabel environment
+Alamat dasar dibaca di `src/api/konfigurasi.ts` dengan `import.meta.env.VITE_API_URL || "/api/v1"`. Tiga keadaan:
+- variabel tidak ada: memakai `/api/v1`
+- berisi alamat penuh: memakai alamat itu
+- berisi string kosong: tetap memakai `/api/v1` karena `||` menganggap `""` sebagai "tidak ada", sedangkan `??` akan memakai `""` dan merusak semua alamat
+
+Hasil percobaanku (dicetak dengan `console.log("BASE_URL:", BASE_URL)`, dan dev server di-restart tiap kali `.env` berubah):
+
+| Isi `.env` | `BASE_URL` yang terbaca |
+|---|---|
+| variabel tidak ada (file kosong) | `/api/v1` |
+| `VITE_API_URL=http://localhost:3000/api/v1` | `http://localhost:3000/api/v1` |
+| `VITE_API_URL=` (kosong) | `/api/v1` |
+
+Rahasia tidak boleh ditaruh di variabel `VITE_` karena nilainya ditanam ke bundle JavaScript saat build, sehingga siapa pun yang membuka aplikasi bisa membacanya di DevTools.
+
+### Soal 6: fetch dan status 401
+Panggilan `/me` tanpa token membuat server menjawab 401, tetapi promise `fetch` tetap resolve: `res.ok` bernilai `false`, status 401, lalu `.then` berikutnya tetap berjalan dan membaca body error seolah-olah data. `.catch` tidak terpanggil karena `fetch` hanya menolak saat jaringan gagal. Karena itu `res.ok` harus diperiksa sendiri, dan di Rabu itu dipusatkan di satu klien API.
+
+Hasil percobaanku:
+```
+ok? false, status: 401
+then kedua tetap jalan: {"sukses":false,"error":{"kode":"UNAUTHORIZED","pesan":"Token tidak ditemukan", ...},"requestId":"..."}
+```
+Terbukti `.then` kedua tetap berjalan dan `.catch` tidak terpanggil. Body yang dibaca adalah objek error format baku API (`sukses`, `error.kode`, `error.pesan`, `requestId`), bukan data. Kode yang tidak memeriksa `res.ok` akan menganggap objek ini sebagai data.
+
+### Soal 7: lupa Content-Type
+Tanpa header `Content-Type: application/json`, `express.json()` tidak mem-parse body, sehingga server melihat body kosong dan validasi menolak (field wajib tidak ada). Dengan header yang benar, body terbaca dan server memvalidasi isinya sebenarnya.
+
+Hasil percobaanku:
+- **Tanpa header:** status **422**, `VALIDATION_ERROR` "Validasi gagal" dengan lima detail (email: format tidak valid dan maksimal 254; password: maksimal 72, wajib diisi, harus berupa teks). Artinya semua field dianggap tidak ada, padahal body sudah dikirim.
+- **Dengan header:** status **401**, `UNAUTHORIZED` "Email atau password salah". Body terbaca dan lolos validasi, ditolak karena akunnya memang tidak ada.
+
+Gejalanya menyesatkan: pesan 422 menyalahkan isi form, padahal penyebabnya header yang hilang. Kalau mendapat 422 "semua field wajib" padahal body terlihat benar, periksa `Content-Type` lebih dulu.
+
+### Soal 8: proxy Vite dan nginx
+Kode frontend hanya memanggil alamat relatif seperti `/api/v1/...`, tidak peduli siapa yang meneruskannya. Di development, Vite menjalankan peran proxy: ia meneruskan `/api` ke `localhost:3000`. Di produksi (Minggu 24), nginx menjalankan peran yang sama dengan meneruskan `/api` ke container API. Karena aplikasi selalu hanya "bicara" ke origin-nya sendiri, CORS tidak terlibat di kedua lingkungan, dan tidak ada baris kode frontend yang berubah saat berpindah; cukup konfigurasi proxy-nya yang berbeda.

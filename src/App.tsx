@@ -13,6 +13,7 @@ import { pesertaTiruan } from "./data/pesertaTiruan";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { usePenundaan } from "./hooks/usePenundaan";
 import LatihanKamis from "./latihan/LatihanKamis";
+import LatihanMinggu19Senin from "./latihan/LatihanMinggu19Senin";
 import LatihanRabu from "./latihan/LatihanRabu";
 import LatihanSelasa from "./latihan/LatihanSelasa";
 import LatihanSenin from "./latihan/LatihanSenin";
@@ -23,7 +24,7 @@ import { adalahDaftarJurnal } from "./utils/guard";
 import { urutkanJurnal } from "./utils/jurnal";
 
 // Sementara (sebelum ada router): halaman bantu dibuka lewat
-// ?halaman=galeri, latihan, latihan-selasa, latihan-rabu, atau latihan-kamis
+// ?halaman=galeri, latihan, latihan-selasa, latihan-rabu, latihan-kamis, atau latihan-minggu19
 const halaman = new URLSearchParams(window.location.search).get("halaman");
 
 const pesertaId = 1;
@@ -103,6 +104,14 @@ export default function App() {
     return (
       <main className={styles.halaman}>
         <LatihanKamis />
+      </main>
+    );
+  }
+
+  if (halaman === "latihan-minggu19") {
+    return (
+      <main className={styles.halaman}>
+        <LatihanMinggu19Senin />
       </main>
     );
   }
