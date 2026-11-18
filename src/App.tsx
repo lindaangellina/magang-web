@@ -13,7 +13,7 @@ import { pesertaTiruan } from "./data/pesertaTiruan";
 import { useLocalStorage } from "./hooks/useLocalStorage";
 import { usePenundaan } from "./hooks/usePenundaan";
 import LatihanKamis from "./latihan/LatihanKamis";
-import LatihanMinggu19Senin from "./latihan/LatihanMinggu19Senin";
+import LatihanMinggu19Rabu from "./latihan/LatihanMinggu19Rabu";
 import LatihanRabu from "./latihan/LatihanRabu";
 import LatihanSelasa from "./latihan/LatihanSelasa";
 import LatihanSenin from "./latihan/LatihanSenin";
@@ -25,7 +25,7 @@ import { adalahDaftarJurnal } from "./utils/guard";
 import { urutkanJurnal } from "./utils/jurnal";
 
 // Sementara (sebelum ada router): halaman bantu dibuka lewat
-// ?halaman=galeri, latihan, latihan-selasa, latihan-rabu, latihan-kamis, atau latihan-minggu19
+// ?halaman=galeri, latihan, latihan-selasa, latihan-rabu, latihan-kamis, atau latihan-minggu19-rabu
 const halaman = new URLSearchParams(window.location.search).get("halaman");
 
 const pesertaId = 1;
@@ -111,10 +111,10 @@ export default function App() {
     );
   }
 
-  if (halaman === "latihan-minggu19") {
+  if (halaman === "latihan-minggu19-rabu") {
     return (
       <main className={styles.halaman}>
-        <LatihanMinggu19Senin />
+        <LatihanMinggu19Rabu />
       </main>
     );
   }

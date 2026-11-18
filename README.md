@@ -573,3 +573,85 @@ Skrip ini menghasilkan ulang tipe, lalu `git diff --exit-code` gagal (kode kelua
 
 ### Soal 7: dokumen longgar menghasilkan tipe longgar
 Generator tipe hanya bisa menyalin apa yang tertulis di dokumen: tanpa `required`, ia tidak tahu properti mana yang selalu ada, sehingga semuanya dibuat opsional dan setiap pemakaian dipaksa memeriksa `undefined`. Tipe yang longgar membuat kompilator tidak bisa menangkap kesalahan, dan kode frontend jadi dipenuhi pemeriksaan yang sebenarnya tidak perlu. Ini persis pelajaran "tulis dokumen yang akurat" di Minggu 16: dokumen bukan sekadar bahan bacaan, tetapi kontrak yang diterjemahkan mesin menjadi tipe dan test. Tipe ini tetap hanya klaim: interface hilang saat runtime, jadi test dokumen di backend dan satu titik kepercayaan di klien API (Rabu) tetap diperlukan.
+
+## Minggu 19 — Rabu: Klien API Sendiri
+
+Semua permintaan ke backend lewat satu pintu. Komponen memanggil fungsi bertipe (`login`, `ambilJurnalSaya`, `buatJurnal`) dan hanya menerima data atau `ApiError`.
+
+```
+komponen --> src/api/jurnal.ts, auth.ts --> src/api/client.ts (request<T>) --> fetch --> /api/v1 (proxy Vite) --> Express
+```
+
+### Soal 1: ApiError
+`src/api/errors.ts` berisi `KodeError`, `ApiError`, `adalahKode`, `keApiError`, dan `bacaErrorBody` (membaca body error dengan type narrowing, tanpa `any` dan `as`).
+
+Kenapa properti `ApiError` ditulis eksplisit, tidak lewat parameter property? Parameter property (`constructor(readonly status: number)`) bukan sekadar anotasi tipe, karena compiler harus membuatkan kode penugasan `this.status = status`, sedangkan template Vite mengaktifkan `erasableSyntaxOnly` yang hanya mengizinkan sintaks yang bisa dihapus murni tanpa mengubah perilaku. Dengan properti ditulis eksplisit, setiap penugasan terlihat jelas di kode dan file tetap lolos aturan itu. Hasilnya, tipe cukup dihapus saat build dan tidak ada kode tersembunyi yang dibuat oleh sintaks pintasan.
+
+### Soal 2: request
+`src/api/client.ts` (`request<T>`) satu-satunya tempat yang memanggil `fetch`, memeriksa `res.ok`, membaca isi sebagai teks dulu (bisa kosong atau bukan JSON), lalu menerjemahkan format error baku menjadi `ApiError`. Bukti: pencarian `fetch(` di seluruh folder `src` (Ctrl+Shift+F, tidak termasuk `schema.d.ts`) hanya menemukan **1 hasil**, di `client.ts`. File eksperimen Senin (`LatihanMinggu19Senin.tsx` dan `CekServer.tsx`) sudah dihapus karena memanggil `fetch` langsung; hasil eksperimennya sudah tercatat di bagian Senin. Alamat dasar diambil dari `konfigurasi.ts` supaya hanya ada satu sumber `BASE_URL`.
+
+Dua `as` yang disengaja, terkurung di `request`: `undefined as T` (status 204 memang tanpa isi) dan `json as T` (satu-satunya titik kepercayaan pada kontrak OpenAPI).
+
+### Soal 3: fungsi per sumber daya
+- `auth.ts`: `login(email, password)` menyimpan token dan mengembalikan `peserta`.
+- `jurnal.ts`: `ambilJurnalSaya({ signal })` dan `buatJurnal(data: JurnalBaru)`.
+
+Catatan penting: `GET /me/jurnal` di dokumen OpenAPI bertipe `JurnalSayaResponse` (ada `total`, **tanpa** `meta` dan tanpa pagination), bukan `JurnalListResponse`. Karena itu `ambilJurnalSaya` tidak punya parameter `halaman` dan mengembalikan `{ daftar, total }`. Memakai `JurnalListResponse` akan membuat `meta` bertipe ada tetapi nilainya `undefined` saat dijalankan: tipe yang berbohong. Tipe `JurnalSayaResponse` ditambahkan ke `src/api/types.ts`.
+
+### Soal 4: uji klien lewat konsol
+Halaman uji: `http://localhost:5173/?halaman=latihan-minggu19-rabu`.
+
+| Pemanggilan | Hasil |
+|---|---|
+| Ambil jurnal saya tanpa login | `ApiError` status 401, kode `UNAUTHORIZED`, requestId `fc6a0b12-d0ef-4f35-a3b1-fc16cb06314c` |
+| Login password salah | `ApiError` status 401, kode `UNAUTHORIZED`, requestId `a3479cff-7614-4fd4-81a8-df978cc964a8` |
+| Login benar | Berhasil, mengembalikan data peserta (id 92, nama lingling) |
+| Ambil jurnal saya setelah login | Berhasil, `{ daftar: [], total: 0 }` (akun baru belum punya jurnal) |
+
+401 menghasilkan `ApiError`, bukan data.
+
+### Soal 5: kasus ekstrem
+- **Respons HTML** (jalur `/api/docs/` lewat `request`): `ApiError` status 200, kode `BAD_RESPONSE`, pesan "Server tidak mengirim JSON yang valid". Aplikasi tidak crash.
+- **Backend dimatikan** lalu `ambilJurnalSaya`: hasilnya status **502**, kode `BAD_RESPONSE`, bukan `NETWORK_ERROR`. Penyebabnya, yang dipanggil browser adalah proxy Vite yang tetap hidup; proxy membalas "502 Bad Gateway" tanpa isi JSON, jadi itu respons nyata dan `fetch` tidak menolak. Klien mengklasifikasikannya sesuai aturan (respons 502 yang isinya tidak dikenali adalah `BAD_RESPONSE`) dan tidak crash.
+- **Alamat API tidak terjangkau** (`VITE_API_URL=http://localhost:1/api/v1`, lalu dikembalikan): `ApiError` status 0, kode `NETWORK_ERROR`, tanpa `requestId` dan tanpa kode laporan. `NETWORK_ERROR` hanya muncul bila `fetch` sendiri gagal, yaitu browser tidak bisa menjangkau tujuan sama sekali.
+
+### Soal 6: pesan untuk pengguna
+`pesanUntukPengguna(error)` memetakan kode ke pesan ramah, dan `teksKodeLaporan(error)` mengembalikan `Kode laporan: ...` bila `requestId` ada (jika tidak, `null`).
+
+| Skenario (kode, status) | Pesan yang diharapkan |
+|---|---|
+| NETWORK_ERROR (0) | Tidak dapat terhubung ke server. Periksa koneksi internetmu lalu coba lagi. |
+| UNAUTHORIZED (401) | Sesimu berakhir atau belum login. Silakan login kembali. |
+| FORBIDDEN (403) | Kamu tidak memiliki akses untuk aksi ini. |
+| NOT_FOUND (404) | Data yang dicari tidak ditemukan. |
+| VALIDATION_ERROR (422) | Data yang dikirim belum valid. Periksa kembali isianmu. |
+| INTERNAL_ERROR (500) | Terjadi kesalahan di server. Coba lagi beberapa saat lagi. |
+
+Keenam skenario diuji manual di bagian bawah halaman uji; pesan yang tampil sama dengan tabel ini.
+
+Catatan: login dengan password salah juga berkode `UNAUTHORIZED`, sehingga pesannya "Sesimu berakhir atau belum login", padahal sesi tidak berakhir. Pemetaan hanya berdasar kode, dan satu kode dipakai untuk dua situasi. Untuk form login (Jumat) pesan dari server ("Email atau password salah") lebih tepat dipakai.
+
+### Soal 7: peta kode ke perilaku
+Perilaku diputuskan lewat **kode**, bukan teks pesan.
+
+| Kode | Yang dilakukan aplikasi | Dibangun |
+|---|---|---|
+| VALIDATION_ERROR | Pesan di kolom yang bermasalah (dari `detail`) | Jumat |
+| INVALID_JSON | Pesan umum dan kode laporan (ini bug klien) | Rabu |
+| UNAUTHORIZED | Arahkan ke halaman login | Minggu 20 |
+| TOKEN_EXPIRED | Segarkan token lalu ulangi permintaan | Minggu 20 |
+| INVALID_TOKEN | Hapus sesi, arahkan ke login | Minggu 20 |
+| FORBIDDEN | Tampilkan pesan tidak punya akses | Kamis |
+| NOT_FOUND | Tampilkan pesan data tidak ditemukan | Kamis |
+| CONFLICT | Pesan data sudah ada (mis. email terdaftar) di form | Jumat |
+| PAYLOAD_TOO_LARGE | Pesan data terlalu besar | Rabu |
+| RATE_LIMITED | Pesan tunggu, tombol dinonaktifkan sementara | Jumat |
+| INTERNAL_ERROR | Pesan umum, kode laporan, tombol coba lagi | Kamis |
+| NETWORK_ERROR | Pesan koneksi dan tombol coba lagi | Kamis |
+| BAD_RESPONSE | Pesan umum dan kode laporan | Rabu |
+| UNKNOWN_ERROR | Pesan umum | Rabu |
+
+### Soal 8: header X-Request-Id
+Ya, terbaca: baris "Kode laporan" di halaman uji menampilkan `requestId` dari respons (mis. 401 dan login salah).
+
+Header itu terbaca karena frontend memanggil `/api/v1` lewat proxy Vite, sehingga browser menganggapnya **same-origin** dan tidak menyembunyikan header respons apa pun. Jika frontend dan API berbeda domain, browser hanya memperlihatkan header respons yang aman secara bawaan, jadi `X-Request-Id` baru terbaca bila server mengirim `Access-Control-Expose-Headers: X-Request-Id`. Backend sudah menyiapkannya (`exposedHeaders: ["Location", "X-Request-Id", "Retry-After"]` di konfigurasi CORS), dan alamat frontend juga harus ada di `CORS_ORIGINS`.
