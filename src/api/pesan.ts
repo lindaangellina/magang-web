@@ -28,3 +28,10 @@ export function pesanUntukPengguna(error: ApiError): string {
 export function teksKodeLaporan(error: ApiError): string | null {
   return error.requestId !== undefined ? `Kode laporan: ${error.requestId}` : null;
 }
+
+// Khusus layar login: di sini 401 berarti kredensial salah, BUKAN sesi berakhir.
+// Pesannya sama untuk email yang tidak ada dan password yang salah, supaya tidak membocorkan email mana yang terdaftar.
+export function pesanUntukLogin(error: ApiError): string {
+  if (error.kode === "UNAUTHORIZED") return "Email atau password salah.";
+  return pesanUntukPengguna(error);
+}

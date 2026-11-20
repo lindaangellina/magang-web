@@ -62,3 +62,8 @@ export function bacaErrorBody(
 
   return { kode, pesan, detail, requestId };
 }
+
+// Sesi tidak berlaku lagi (tanpa token, token kedaluwarsa, atau token rusak). Diputuskan dari KODE, bukan teks pesan.
+export function adalahSesiBerakhir(err: ApiError): boolean {
+  return err.kode === "UNAUTHORIZED" || err.kode === "TOKEN_EXPIRED" || err.kode === "INVALID_TOKEN";
+}
