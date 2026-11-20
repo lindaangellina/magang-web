@@ -655,3 +655,52 @@ Perilaku diputuskan lewat **kode**, bukan teks pesan.
 Ya, terbaca: baris "Kode laporan" di halaman uji menampilkan `requestId` dari respons (mis. 401 dan login salah).
 
 Header itu terbaca karena frontend memanggil `/api/v1` lewat proxy Vite, sehingga browser menganggapnya **same-origin** dan tidak menyembunyikan header respons apa pun. Jika frontend dan API berbeda domain, browser hanya memperlihatkan header respons yang aman secara bawaan, jadi `X-Request-Id` baru terbaca bila server mengirim `Access-Control-Expose-Headers: X-Request-Id`. Backend sudah menyiapkannya (`exposedHeaders: ["Location", "X-Request-Id", "Retry-After"]` di konfigurasi CORS), dan alamat frontend juga harus ada di `CORS_ORIGINS`.
+
+## Minggu 19 — Kamis: Mengambil Data di Komponen
+
+Halaman uji: `http://localhost:5173/?halaman=jurnal-saya` (login sementara, form lengkap dibuat Jumat).
+
+### Perubahan backend: pagination `GET /me/jurnal`
+Layar Kamis membutuhkan pagination dan `meta` dari server, tetapi `GET /me/jurnal` semula hanya mengembalikan seluruh jurnal beserta `total` (schema `JurnalSayaResponse`). Karena itu endpoint diubah mengikuti alur kontrak Selasa: DTO query `ListJurnalSayaQueryDto` (page, limit, order, sortBy), controller memakai ulang `daftarJurnal` dengan `pesertaId` dari **token** (bukan dari query), response sekarang `JurnalListResponse` (data dan `meta`), dokumen OpenAPI diperbarui (`JurnalSayaResponse` dihapus), lalu `docs:export`, test, dan `npm run api:types`. Parameter yang tidak dikenal (mis. `pesertaId=999`) dibuang oleh whitelist dan tidak pernah sampai ke service.
+
+### Soal 1: StatusPermintaan
+`src/hooks/status.ts` berisi discriminated union `memuat | berhasil | gagal`.
+
+Kenapa "kosong" bukan salah satu status? Karena permintaannya sendiri berhasil dan datanya valid; "kosong" hanya cara memandang isi data (`daftar.length === 0`) yang diputuskan oleh tampilan. Kalau dijadikan status, ada dua tempat yang harus selalu sama (status dan isi data), sehingga keadaan yang bertentangan bisa muncul.
+
+### Soal 2 dan 3: hook dan layar
+- `src/hooks/useJurnalSaya.ts`: tiap bagian (AbortController, `signal.aborted`, `kunci`, status turunan, `versi`) diberi komentar satu kalimat tentang masalah yang diselesaikannya.
+- `src/components/jurnal/JurnalSaya.tsx`: empat keadaan (memuat dengan `role="status"`, gagal dengan pesan ramah, kode laporan, dan tombol "Coba lagi", kosong dengan ajakan bertindak, berhasil dengan pagination dari `meta`).
+- `src/latihan/HalamanJurnalSaya.tsx`: login sementara (email dan password diketik di kolom, tidak ada di kode) lalu menampilkan `JurnalSaya`. Di dalamnya ada alat uji: isi 12 jurnal contoh dan hapus token (uji 401).
+
+### Soal 4: bukti pembatalan
+Pada development, tab Network (filter `jurnal`) menampilkan dua permintaan `jurnal?page=1&limit=5`: satu berstatus **(canceled)** dan satu **200**, keduanya berasal dari `client.ts:38`. Saat menekan "Berikutnya" hanya muncul permintaan baru `page=2` berstatus 200, tanpa permintaan canceled baru. Klik cepat berkali-kali tidak mungkin dilakukan, karena saat memuat layar berganti ke "Memuat jurnal..." dan tombol halaman hilang, jadi hanya satu permintaan berjalan pada satu waktu.
+
+![Permintaan dibatalkan di tab Network](docs/screenshots/soal4-network.png)
+
+Kenapa satu permintaan berstatus "cancelled" di development? Karena StrictMode sengaja memasang komponen, melepasnya, lalu memasangnya lagi untuk menguji cleanup. Efek pertama dibatalkan oleh `pengendali.abort()` di cleanup, dan efek kedua yang selesai. Di build produksi tidak ada pemasangan ganda, jadi permintaan itu hanya satu.
+
+### Soal 5: race condition
+Cara: perlindungan dihilangkan sementara, yaitu baris `pengendali.abort()` di cleanup diberi komentar dan pencocokan kunci pada `hasil` dihapus (`selesai !== null ? selesai : ...`). Agar jawaban halaman 2 pasti telat, `ambilJurnalSaya` ditambah penundaan 3 detik khusus `halaman === 2`. Lalu dari halaman 1, "Berikutnya" diklik dua kali berturut-turut tanpa menunggu.
+
+Hasil: **bisa**. Selagi halaman 2 dimuat, data halaman 1 masih tampil (data lama) dan tombol halaman masih bisa diklik. Jawaban halaman 3 yang cepat tampil lebih dulu, lalu sekitar 3 detik kemudian jawaban halaman 2 yang lambat tiba terakhir dan menimpa tampilan menjadi "Halaman 2 dari 3", padahal pengguna sedang di halaman 3. Kode sudah dikembalikan ke versi terlindungi (dibuktikan dengan pencarian di VS Code, serta `npm run build` dan `npm run lint` bersih).
+
+Kesimpulan: dengan perlindungan lengkap (abort dan pencocokan kunci) tampilan tidak pernah menampilkan data halaman lama; tanpa pencocokan kunci, data lama tetap tampil selagi halaman baru dimuat, sehingga tombol halaman masih bisa diklik dan jawaban yang lambat bisa tiba terakhir lalu menimpa halaman yang sedang dilihat. Kode dikembalikan ke versi terlindungi.
+
+### Soal 6: semua keadaan
+| Keadaan | Cara memaksa | Tangkapan layar |
+|---|---|---|
+| a. memuat | Throttling Slow 4G | ![memuat](docs/screenshots/a-memuat.png) |
+| b. gagal jaringan | Backend dimatikan lalu klik "Berikutnya" (lewat proxy Vite menjadi 502, pesan umum) | ![gagal](docs/screenshots/b-gagal-jaringan.png) |
+| c. gagal 401 | Tombol "Hapus token lalu muat ulang" | ![401](docs/screenshots/c-gagal-401.png) |
+| d. kosong | Akun baru tanpa jurnal | ![kosong](docs/screenshots/d-kosong.png) |
+| e. berhasil dengan pagination | 12 jurnal contoh, 5 per halaman, 3 halaman | ![pagination](docs/screenshots/e-pagination.png) |
+
+### Soal 7: coba lagi
+Backend dimatikan, klik "Berikutnya" menghasilkan kotak merah dengan tombol "Coba lagi" (permintaan `page=2` berstatus 502). Setelah backend dinyalakan lagi dan "Coba lagi" diklik, data halaman muncul **tanpa memuat ulang halaman**, karena tombol menaikkan `versi` sehingga `kunci` berubah dan efek berjalan lagi.
+
+### Soal 8: ESLint
+`npm run lint` bersih tanpa peringatan `react-hooks` dan tanpa ada yang dibungkam. `setState` hanya dipanggil di dalam callback `then` dan `catch`, bukan sinkron di badan efek, dan status "memuat" diturunkan, bukan disimpan.
+
+### Soal 9: jawaban
+Tiga masalah yang harus ditangani sendiri saat mengambil data di `useEffect` (dan tidak ada pada data statis) adalah keadaan permintaan (memuat, gagal, kosong), jawaban lama yang datang terlambat atau tidak berurutan (race condition) sehingga permintaan harus dibatalkan lewat cleanup, dan pengambilan ulang tanpa penyimpanan sementara sehingga layar berkedip dan tombol "coba lagi" harus dibuat manual. Hook yang kutulis harus menjaga ketiganya sendiri dengan kunci permintaan, AbortController, dan status turunan. Alat yang seharusnya mengurusnya adalah pustaka pengelola data server seperti TanStack Query, karena ia menyimpan data lama selagi memuat yang baru, membatalkan dan menggabungkan permintaan kembar, serta menyediakan coba ulang dan status memuat dan gagal siap pakai.

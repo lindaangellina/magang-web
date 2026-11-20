@@ -1,16 +1,19 @@
 // src/api/jurnal.ts
 import { request } from "./client";
-import type { JurnalBaru, JurnalResponse, JurnalSayaResponse } from "./types";
+import type { JurnalBaru, JurnalListResponse, JurnalResponse } from "./types";
 
 interface OpsiDaftar {
+  halaman?: number;
   signal?: AbortSignal;
 }
 
-// GET /me/jurnal di dokumen OpenAPI bertipe JurnalSayaResponse: ada `total`, TANPA `meta` dan TANPA pagination.
-// Karena itu tidak ada parameter halaman, dan hasilnya membawa total (bukan meta).
-export async function ambilJurnalSaya({ signal }: OpsiDaftar = {}) {
-  const body = await request<JurnalSayaResponse>("GET", "/me/jurnal", { signal });
-  return { daftar: body.data, total: body.total };   // buka bungkus supaya komponen tidak perlu data.data
+// GET /me/jurnal sekarang berpagination (Minggu 19 Kamis): bertipe JurnalListResponse, lengkap dengan `meta`.
+export async function ambilJurnalSaya({ halaman, signal }: OpsiDaftar = {}) {
+  const body = await request<JurnalListResponse>("GET", "/me/jurnal", {
+    query: { page: halaman, limit: 5 },
+    signal,
+  });
+  return { daftar: body.data, meta: body.meta };   // buka bungkus supaya komponen tidak perlu data.data
 }
 
 export async function buatJurnal(data: JurnalBaru) {

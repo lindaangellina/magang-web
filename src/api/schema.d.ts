@@ -432,11 +432,21 @@ export interface paths {
         };
         /**
          * Daftar jurnal milik sendiri
-         * @description Seluruh jurnal milik pengguna yang sedang login (tanpa pagination; ada field `total`).
+         * @description Jurnal milik pengguna yang sedang login, dengan pagination (`meta`). Pemilik diambil dari token,
+         *     jadi tidak ada parameter `pesertaId`; parameter yang tidak dikenal diabaikan.
          */
         get: {
             parameters: {
-                query?: never;
+                query?: {
+                    /** @description Nomor halaman (mulai 1) */
+                    page?: components["parameters"]["Page"];
+                    /** @description Jumlah data per halaman */
+                    limit?: components["parameters"]["Limit"];
+                    /** @description Arah pengurutan */
+                    order?: components["parameters"]["Order"];
+                    /** @description Kolom pengurutan */
+                    sortBy?: "createdAt" | "statusReview";
+                };
                 header?: never;
                 path?: never;
                 cookie?: never;
@@ -450,10 +460,11 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["JurnalSayaResponse"];
+                        "application/json": components["schemas"]["JurnalListResponse"];
                     };
                 };
                 401: components["responses"]["Unauthorized"];
+                422: components["responses"]["ValidationError"];
             };
         };
         put?: never;
@@ -1436,15 +1447,6 @@ export interface components {
             pesan: string;
             /** @example null */
             data: Record<string, never> | null;
-        };
-        JurnalSayaResponse: {
-            /** @example true */
-            sukses: boolean;
-            /** @example Jurnal milik saya berhasil diambil */
-            pesan: string;
-            /** @example 3 */
-            total: number;
-            data: components["schemas"]["Jurnal"][];
         };
         StatsResponse: {
             /** @example true */
