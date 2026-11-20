@@ -704,3 +704,68 @@ Backend dimatikan, klik "Berikutnya" menghasilkan kotak merah dengan tombol "Cob
 
 ### Soal 9: jawaban
 Tiga masalah yang harus ditangani sendiri saat mengambil data di `useEffect` (dan tidak ada pada data statis) adalah keadaan permintaan (memuat, gagal, kosong), jawaban lama yang datang terlambat atau tidak berurutan (race condition) sehingga permintaan harus dibatalkan lewat cleanup, dan pengambilan ulang tanpa penyimpanan sementara sehingga layar berkedip dan tombol "coba lagi" harus dibuat manual. Hook yang kutulis harus menjaga ketiganya sendiri dengan kunci permintaan, AbortController, dan status turunan. Alat yang seharusnya mengurusnya adalah pustaka pengelola data server seperti TanStack Query, karena ia menyimpan data lama selagi memuat yang baru, membatalkan dan menggabungkan permintaan kembar, serta menyediakan coba ulang dan status memuat dan gagal siap pakai.
+
+## Mini Project Jumat: Jurnal dari API (login sementara)
+
+### Cara menjalankan (dua terminal)
+
+Terminal 1 (backend, folder `api-magang`):
+
+```
+npm run dev
+```
+
+Terminal 2 (frontend, folder `magang-web`):
+
+```
+npm run dev
+```
+
+Buka alamat yang ditampilkan Vite (biasanya http://localhost:5173). Permintaan ke `/api/v1` diteruskan oleh proxy Vite ke backend di port 3000, jadi tidak ada masalah CORS saat pengembangan.
+
+### Akun uji
+
+Daftarkan akun lewat `POST /auth/register` di dokumentasi API (`http://localhost:3000/api/docs`), lalu login dengan akun itu di aplikasi.
+
+- Email: `<isi email akun ujimu>`
+- Password: `<isi password akun ujimu>`
+
+### Alur kerja tipe (api:types)
+
+1. Ubah kontrak di backend (skema atau anotasi rute), lalu `npm run docs:export` dan `npm test`.
+2. Jalankan ulang backend.
+3. Di frontend: `npm run api:types` menghasilkan `src/api/schema.d.ts` (jangan diedit tangan).
+4. Perbaiki error compile yang muncul: itulah daftar tempat yang terdampak perubahan kontrak.
+5. `npm run api:types:check` memastikan `schema.d.ts` sama dengan dokumen.
+
+### Keputusan desain
+
+- **Satu pintu ke jaringan:** hanya `src/api/client.ts` yang memanggil `fetch`. Komponen dan hook memakai fungsi di `auth.ts` dan `jurnal.ts`.
+- **Dua `as` yang disetujui** (`undefined as T` untuk 204 dan `json as T` untuk respons sukses) hanya ada di `client.ts`. Body error dibaca dengan type narrowing (`bacaErrorBody`).
+- **Status permintaan berupa union** (`memuat | berhasil | gagal`). Tidak ada boolean `loading` dan `error` yang bisa saling bertentangan. "Kosong" bukan status: itu keadaan berhasil dengan daftar kosong.
+- **Hook `useJurnalSaya`** memakai `AbortController` dengan cleanup; status "memuat" diturunkan dari kunci (`halaman:versi`), bukan di-set di dalam efek.
+- **Form mengirim lewat union juga** (`diam | mengirim | tersimpan | gagal`). Tombol nonaktif dan bertuliskan "Menyimpan..." saat mengirim, ditambah pengaman di handler agar Enter dua kali tidak mengirim ganda.
+- **Kolom opsional dihilangkan, bukan `null`:** `CreateJurnalRequest` tidak menerima `null`, jadi `hambatan` dan `linkCommit` yang kosong tidak ikut dikirim.
+- **Error 422 dipetakan ke kolom** oleh fungsi murni `detailKeErrors` (`src/utils/detailError.ts`). Kolom yang tidak dikenal form (mis. `lampiran.1.url`) tampil sebagai pesan umum.
+- **Perilaku diputuskan dari kode error**, bukan dari teks pesan server. Pesan untuk pengguna berasal dari `pesanUntukPengguna` (dan `pesanUntukLogin` di layar login, tempat 401 berarti kredensial salah).
+- **Sesi berakhir** (401, `TOKEN_EXPIRED`, `INVALID_TOKEN`) saat memuat jurnal menampilkan tombol "Login kembali", bukan "Coba lagi" yang pasti gagal lagi.
+- **Token hanya di memori** (variabel di `client.ts`). Tidak ada di `localStorage` dan tidak ada di URL. Penyimpanan yang benar dibahas Minggu 20.
+- **Server adalah sumber kebenaran:** tidak ada lagi data tiruan dan `localStorage` untuk jurnal. Setelah menyimpan, daftar dimuat ulang dari server dan kembali ke halaman 1.
+
+### Tabel kode error ke perilaku
+
+| Kode / keadaan | Di mana | Perilaku di layar |
+|---|---|---|
+| `UNAUTHORIZED` (login) | FormLogin | "Email atau password salah." (tidak menyebut mana yang salah) |
+| `UNAUTHORIZED`, `TOKEN_EXPIRED`, `INVALID_TOKEN` | Daftar jurnal | Pesan sesi berakhir + tombol "Login kembali" |
+| `VALIDATION_ERROR` (422) | Login dan FormJurnal | Pesan per kolom; sisanya pesan umum; isian tidak dikosongkan |
+| `RATE_LIMITED` (429) | Login | "Terlalu banyak percobaan. Tunggu beberapa saat lalu coba lagi." |
+| `NETWORK_ERROR` | Semua | "Tidak dapat terhubung ke server..." + "Coba lagi" di daftar |
+| `BAD_RESPONSE` (mis. 502 dari proxy) | Semua | Pesan generik + kode laporan bila ada |
+| `INTERNAL_ERROR` (500) | Semua | Pesan generik + "Kode laporan: <requestId>" (cocokkan dengan log backend) |
+
+### Temuan Integrasi
+
+1. **`GET /me/jurnal` di dokumen tidak berpagination, padahal frontend membutuhkan `meta`.** Gejala: tidak ada `meta` di respons, daftar tidak bisa dipaginasi. Yang salah: kode dan dokumen sama-sama kurang (endpoint belum mendukung). Perbaikan: `ListJurnalSayaQueryDto`, respons `JurnalListResponse`, `docs:export`, `api:types`. Commit: `feat: add pagination to my journal endpoint`.
+2. **Query tak dikenal diabaikan diam-diam (bukan 422).** Gejala: `?foo=1` tetap 200. Yang salah: asumsi/komentar saya, bukan kode. Perbaikan: dokumen, komentar, dan test dikoreksi.
+3. **Backend mati lewat proxy Vite menghasilkan 502 HTML (`BAD_RESPONSE`), bukan `NETWORK_ERROR`.** Dampak: klien memetakan keduanya ke pesan yang ramah; `NETWORK_ERROR` hanya muncul bila `fetch` sendiri gagal.
